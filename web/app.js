@@ -48,7 +48,7 @@ async function refresh() {
     const [st, geo, par] = await Promise.all([api("GET", "/status"), api("GET", "/geometry"), api("GET", "/params")]);
     setState(st.state); S.geometry = geo; S.params = par;
     fillParams(); drawDial(); checkAngle();
-  } catch (e) { note("params-note", e.message, true); }
+  } catch (e) { note("params-note", e.message, true); if (!S.state) setState(null); }
 }
 
 // ---------------------------------------------------------------- live stream
