@@ -24,11 +24,16 @@ async function loadPorts() {
   } catch (e) { /* server without serial support: keep the simulator */ }
 }
 async function connectToggle() {
+  const btn = $("btn-connect");
+  if (btn.disabled) return;
+  btn.disabled = true;                 // one request at a time: a double click must not connect twice
   try {
-    if (S.connected) { await api("POST", "/disconnect"); setConnected(null); return; }
+    if (S.connected) { await api("POST", "/disconnect"); await setConnected(null); return; }
+    note("conn-state", "connecting…");
     const info = await api("POST", "/connect", { port: $("port").value });
-    setConnected(info);
+    await setConnected(info);
   } catch (e) { note("conn-state", e.message, true); }
+  finally { btn.disabled = false; }
 }
 async function setConnected(info) {
   S.connected = !!(info && info.port);
