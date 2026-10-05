@@ -112,16 +112,18 @@ async function perturb() {
 }
 
 // ---------------------------------------------------------------- motor test (open loop, docs/tests/open-loop-test-module-C.md settings)
-const TEST = { kp_track: 0, kd_track: 0, kp_pulse: 0, kd_pulse: 0, kff: 2, baseline_n: 2, fmax_n: 30 };
+const TEST = { kp_track: 0, kd_track: 0, kp_pulse: 0, kd_pulse: 0, kff: 2, baseline_n: 0, fmax_n: 30 };   // baseline from "Hold tension"
 async function testSetup() {
   if (S.state !== "DISARMED") { note("t-note", "Disarmed only (channels can't change while armed): Release first.", true); return; }
   const mod = $("t-mod").value, p = S.params || {};
-  const patch = { ...TEST };
+  const hold = parseFloat($("t-hold").value);
+  if (!(hold >= 0 && hold <= TEST.fmax_n)) { note("t-note", `Hold tension must be 0–${TEST.fmax_n} N.`, true); return; }
+  const patch = { ...TEST, baseline_n: hold };
   for (const m of MODS) patch[`ch_${m}`] = m === mod ? 1 : 0;
   if (!S.saved) S.saved = Object.fromEntries(Object.keys(patch).map((k) => [k, p[k]]));   // keep the first snapshot
   try {
     await api("PATCH", "/params", patch);
-    note("t-note", `Test settings applied, only ${mod} enabled. Now Arm, then Pull.`);
+    note("t-note", `Test settings applied: only ${mod} on, hold tension ${hold} N. Now Arm, then Pull.`);
   } catch (e) { note("t-note", e.message, true); }
   await refresh();
 }

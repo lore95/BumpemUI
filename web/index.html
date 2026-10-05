@@ -70,6 +70,7 @@
         <select id="t-mod"><option value="A">A · left</option><option value="B">B · front</option><option value="C" selected>C · right</option><option value="D">D · back</option></select></label>
       <label>Force <span class="u">N above baseline</span><input id="t-force" type="number" step="0.5" min="0.5" value="10"></label>
       <label>Duration <span class="u">ms, incl. 50 ms ramps</span><input id="t-dur" type="number" step="10" min="100" value="400"></label>
+      <label>Hold tension <span class="u">N after Arm; 0 = rope stays slack</span><input id="t-hold" type="number" step="0.5" min="0" max="30" value="0"></label>
     </div>
     <div class="row">
       <button id="t-setup">1 · Apply test settings</button>
@@ -78,7 +79,7 @@
       <button id="t-restore">Restore previous settings</button>
     </div>
     <p id="t-note" class="muted small"></p>
-    <p class="muted small">Test settings: controller gains 0 (force sensor not used), kff 2 (pull ≈ requested force, calculated, not measured), baseline 2 N, max 30 N, only the chosen module on. Only force and duration can be set: no position sensor is wired, so rope distance can't be controlled.</p>
+    <p class="muted small">Test settings: controller gains 0 (force sensor not used), kff 2 (pull ≈ requested force, calculated, not measured), baseline = hold tension, max 30 N, only the chosen module on. With hold tension 0 the motor winds in the slack at the start of each pull (small jerk): fine on an anchored rope, not with a person attached. Only force and duration can be set: no position sensor is wired, so rope distance can't be controlled.</p>
   </section>
 
   <section class="card" aria-labelledby="h-board">
