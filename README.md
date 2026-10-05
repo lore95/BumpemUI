@@ -3,9 +3,13 @@
 Web interface for the IBMS Bump'em perturbation system. It is a client of the bumpem server
 (`../BumpemServer`) and uses only the server API: `../BumpemServer/docs/API.md`.
 
-Not built yet. See `docs/STATUS.md`.
-
-## Planned use
+## Run
 ```sh
-cd ../BumpemServer && bumpem serve      # starts the server, opens this UI in the browser
+cd ../BumpemServer
+bumpem serve --board sim                              # or --board /dev/cu.usbmodem169222501
 ```
+Open http://127.0.0.1:8000/ui/ . The server serves `web/` (this folder must sit next to BumpemServer, or pass `--ui PATH`).
+
+**STOP**: red button or the **Esc** key, on every screen. STOP and Release drop rope tension: stop the treadmill first unless it is an emergency.
+
+Status: `docs/STATUS.md`.

@@ -7,3 +7,18 @@ Server-side decisions that shaped this project: BumpemServer D9 (web UI served b
 Decision: HTML/CSS/JS files served as they are; third-party scripts saved in the repo.
 Reason: clone-and-go on any OS without Node.js; lab PCs may be offline.
 Alternatives: React/Vite (needs Node and a build), NiceGUI (UI in Python, but tied to the server process).
+
+## U2 — 2026-10-05 — Served by bumpem serve at /ui/
+Decision: the server serves `web/` at `/ui/` (`bumpem serve --ui PATH`, default `../BumpemUI/web`); the page calls the API on the same origin (relative `/api/v1/...`, WebSocket on `location.host`).
+Reason: no cross-origin setup, one URL for the operator, works offline.
+Alternatives: open the file directly (blocked by the browser without CORS); a separate static server.
+
+## U3 — 2026-10-05 — Running gait-phase picker, own stick figures, cycle %
+Decision: the PTO picker shows the running gait cycle of thesis Fig. 1 (stance 0–40 %, float 40–55 %, swing 55–85 %, float 85–100 %) with 8 stick-figure runners drawn from approximate joint-angle curves (not the thesis image, which comes from a cited source). The selection is a % of the gait cycle after the trigger foot strike (`pto.mode = "cycle_pct"`, added to API.md as planned).
+Reason: the lab's trials are running (thesis); a cycle % covers float and swing, which "% of stance" cannot.
+Alternatives: lab photos; walking cycle; stance % only.
+
+## U4 — 2026-10-05 — No plot library
+Decision: the live force plot is a plain canvas (10 s window, ~60 fps redraw, 30 Hz data).
+Reason: 4 channels × 2 lines is simple; nothing to vendor or update.
+Alternatives: uPlot / Chart.js saved in the repo.

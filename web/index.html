@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bump'em Control</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Bump'em <span>control</span></div>
+  <div class="conn">
+    <select id="port" aria-label="Board port"><option value="sim">simulator</option></select>
+    <button id="btn-connect">Connect</button>
+    <span id="conn-state" class="pill">not connected</span>
+    <span id="board-state" class="pill state">—</span>
+  </div>
+  <div class="actions">
+    <button id="btn-clear" class="warn" hidden title="Leave FAULT: back to ARMED (protocol CLEAR)">Clear fault</button>
+    <button id="btn-arm">Arm</button>
+    <button id="btn-release" class="warn">Release…</button>
+    <button id="btn-stop" class="stop" title="Emergency stop: drivers off now (key: Esc)">STOP <kbd>Esc</kbd></button>
+  </div>
+</header>
+<p class="stop-note">STOP and Release drop rope tension: stop the treadmill first, unless it is an emergency.</p>
+
+<main class="grid">
+  <section class="card" aria-labelledby="h-dir">
+    <h2 id="h-dir">Direction</h2>
+    <svg id="dial" viewBox="-40 0 420 340" role="img" aria-label="Pull direction dial, seen from above; front is up"></svg>
+    <div class="row">
+      <label>Angle <input id="angle" type="number" step="1" value="180"> °</label>
+      <span id="angle-note" class="muted"></span>
+    </div>
+    <p class="muted small">Seen from above, subject facing up. 0° front, +90° left, −90° right, 180° back. Grey: no mounted module can pull that way.</p>
+  </section>
+
+  <section class="card" aria-labelledby="h-pert">
+    <h2 id="h-pert">Perturbation</h2>
+    <div class="fields">
+      <label>Amplitude <span class="u">N above baseline</span><input id="amplitude_n" type="number" step="0.5" min="0" value="10"></label>
+      <label>Phase 1 (ramp up) <span class="u">ms</span><input id="phase1_ms" type="number" step="1" min="0" value="50"></label>
+      <label>Duration <span class="u">ms, start → end incl. ramps</span><input id="dur_ms" type="number" step="1" min="1" value="400"></label>
+      <label>Phase 2 (ramp down) <span class="u">ms</span><input id="phase2_ms" type="number" step="1" min="0" value="50"></label>
+      <label>Delay <span class="u">ms, board-side</span><input id="delay_ms" type="number" step="1" min="0" value="0"></label>
+    </div>
+    <svg id="profile" viewBox="0 0 360 90" role="img" aria-label="Force profile preview"></svg>
+    <div class="row">
+      <button id="btn-perturb" class="primary">Perturb now</button>
+      <button id="btn-perturb-pto" disabled title="Needs gait-event triggering in the server (API step 2, planned)">Perturb at gait phase</button>
+    </div>
+    <p id="pert-result" class="muted small"></p>
+  </section>
+
+  <section class="card wide" aria-labelledby="h-gait">
+    <h2 id="h-gait">Gait phase (PTO)</h2>
+    <svg id="gait" viewBox="0 0 880 232" role="img" aria-label="Running gait cycle; click a runner to choose the perturbation timing"></svg>
+    <div class="row">
+      <label>Cycle <input id="cycle_pct" type="number" min="0" max="99.9" step="0.5" value="20"> % after foot strike</label>
+      <span id="pto-text" class="muted"></span>
+    </div>
+    <p class="muted small">Running gait cycle (thesis Fig. 1): stance 0–40 %, float 40–55 %, swing 55–85 %, float 85–100 %. Timing reference: foot strike of the highlighted leg.</p>
+  </section>
+
+  <section class="card" aria-labelledby="h-board">
+    <h2 id="h-board">Board settings</h2>
+    <div class="fields">
+      <label>Baseline <span class="u">N</span><input id="p-baseline_n" type="number" step="0.5" min="0"></label>
+      <label>Max force <span class="u">N (firmware clamp)</span><input id="p-fmax_n" type="number" step="1" min="0"></label>
+    </div>
+    <div class="chans" id="chans"></div>
+    <div class="row"><button id="btn-apply">Apply</button><span id="params-note" class="muted small"></span></div>
+    <p class="muted small">Channels can only be switched while disarmed.</p>
+  </section>
+
+  <section class="card" aria-labelledby="h-live">
+    <h2 id="h-live">Live force</h2>
+    <canvas id="plot" width="640" height="260" aria-label="Measured (solid) and target (dashed) force per module, last 10 s"></canvas>
+    <div id="legend" class="legend"></div>
+  </section>
+</main>
+
+<script src="gait.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
