@@ -119,9 +119,9 @@ async function perturb() {
 // ---------------------------------------------------------------- motor test (open loop, docs/tests/open-loop-test-module-C.md settings)
 const TEST = { kp_track: 0, kd_track: 0, kp_pulse: 0, kd_pulse: 0, kff: 2, baseline_n: 0, fmax_n: 5 };   // baseline / cap from the card
 async function testSetup() {
-  if (S.state !== "DISARMED") {
-    const how = S.state === "ESTOP" ? "Arm, then Release…" : S.state === "FAULT" ? "Clear fault, then Release…" : "Release… first";
-    note("t-note", `Board is ${S.state}: settings can only change while DISARMED. ${how}`, true); return;
+  if (S.state !== "DISARMED" && S.state !== "ESTOP") {   // firmware: channels change in DISARMED or ESTOP (drivers off)
+    const how = S.state === "FAULT" ? "Clear fault, then Release…" : "Release… first";
+    note("t-note", `Board is ${S.state}: settings can only change while DISARMED or stopped (ESTOP). ${how}`, true); return;
   }
   const mod = $("t-mod").value, p = S.params || {};
   const hold = parseFloat($("t-hold").value), cap = parseFloat($("t-max").value);
@@ -148,7 +148,7 @@ async function testPull() {
 }
 async function testRestore() {
   if (!S.saved) { note("t-note", "Nothing saved: test settings were not applied in this page."); return; }
-  if (S.state !== "DISARMED") { note("t-note", "Release first, then restore.", true); return; }
+  if (S.state !== "DISARMED" && S.state !== "ESTOP") { note("t-note", "Release… first (or STOP), then restore.", true); return; }
   const { fmax_n, ...rest } = S.saved;     // max force first, so the old baseline fits under it
   try {
     await api("PATCH", "/params", { fmax_n, ...rest });
