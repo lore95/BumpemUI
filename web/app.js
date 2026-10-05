@@ -74,7 +74,7 @@ function setState(st) {
   const changed = st !== S.state;
   S.state = st;
   const el = $("board-state");
-  el.textContent = st || "—"; el.className = `pill state ${st || ""}`;
+  el.textContent = st || (S.connected ? "no data" : "—"); el.className = `pill state ${st || (S.connected ? "FAULT" : "")}`;
   updateButtons();
   if (changed && st === "DISARMED" && S.connected) refresh();
 }
@@ -118,7 +118,9 @@ async function perturb() {
 
 // ---------------------------------------------------------------- motor test (open loop, docs/tests/open-loop-test-module-C.md settings)
 const TEST = { kp_track: 0, kd_track: 0, kp_pulse: 0, kd_pulse: 0, kff: 2, baseline_n: 0, fmax_n: 5 };   // baseline / cap from the card
+const NO_DATA = "The board isn't sending data: Disconnect, then Connect again (or replug the Teensy's USB and restart the server).";
 async function testSetup() {
+  if (!S.state) { note("t-note", NO_DATA, true); return; }
   if (S.state !== "DISARMED" && S.state !== "ESTOP") {   // firmware: channels change in DISARMED or ESTOP (drivers off)
     const how = S.state === "FAULT" ? "Clear fault, then Release…" : "Release… first";
     note("t-note", `Board is ${S.state}: settings can only change while DISARMED or stopped (ESTOP). ${how}`, true); return;
@@ -137,6 +139,7 @@ async function testSetup() {
   await refresh();
 }
 async function testPull() {
+  if (!S.state) { note("t-note", NO_DATA, true); return; }
   const mod = $("t-mod").value, f = parseFloat($("t-force").value), dur = parseFloat($("t-dur").value), p = S.params || {};
   if (S.state !== "ARMED") { note("t-note", "Arm first (button at the top).", true); return; }
   if (!(p[`ch_${mod}`] >= 1)) { note("t-note", `Module ${mod} is not enabled: apply the test settings for it first.`, true); return; }
