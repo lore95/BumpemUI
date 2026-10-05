@@ -9,11 +9,12 @@ Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.2.0).
   - **Perturbation**: amplitude, phase 1, duration, phase 2, delay; profile preview; **Perturb now** → `POST /perturbation`.
   - **Gait phase (PTO)**: running cycle bar (stance 0–40, float 40–55, swing 55–85, float 85–100, thesis Fig. 1) + 8 clickable stick-figure runners; produces `pto {"mode": "cycle_pct", ...}`. "Perturb at gait phase" disabled until the server has PTO (API step 2).
   - **Board settings**: baseline, max force, channels A–D (`PATCH /params`).
+  - **Motor test (open loop)** (2026-10-05): pick module, force, duration → *Apply test settings* (gains 0, kff 2, baseline 2 N, max 30 N, only that module; saves the previous values) → Arm → *Pull* (one `POST /pulse`, 50 ms ramps) → *Restore previous settings*. Rope distance can't be set: no position sensor is wired (force and duration only).
   - **Live force**: last 10 s, measured (solid) / target (dashed) per enabled module, from the WebSocket stream.
 - Folder created (BumpemServer D11).
 
 ## Next
-1. Try it on the real Teensy: `bumpem serve --board /dev/cu.usbmodem169222501`, open http://127.0.0.1:8000/ui/ (open-loop settings, `ch_D` on, `ch_B` off).
+1. Try it on the real Teensy: `bumpem serve --board /dev/cu.usbmodem169222501`, open http://127.0.0.1:8000/ui/, start with the **Motor test** card (one module, 5–10 N).
 2. When the server has PTO (API step 2): enable "Perturb at gait phase", show gait events from the stream.
 3. Trials page (API step 3): blocks, shuffle, 50–75 steps, recovery, progress.
 

@@ -80,6 +80,9 @@ function updateButtons() {
   $("btn-perturb").disabled = !(S.connected && armed && angleReachable(S.angle) !== false);
   $("btn-apply").disabled = !S.connected;
   $("btn-clear").hidden = !(S.connected && S.state === "FAULT");
+  $("t-setup").disabled = !(S.connected && S.state === "DISARMED");
+  $("t-pull").disabled = !(S.connected && armed);
+  $("t-restore").disabled = !(S.connected && S.saved && S.state === "DISARMED");
 }
 
 // ---------------------------------------------------------------- actions
@@ -101,6 +104,41 @@ async function perturb() {
     const r = await api("POST", "/perturbation", body);
     note("pert-result", `pulse ${r.pulse_id}: ` + Object.entries(r.amps).map(([m, v]) => `${m} +${v} N`).join(", "));
   } catch (e) { note("pert-result", e.message, true); }
+}
+
+// ---------------------------------------------------------------- motor test (open loop, docs/tests/open-loop-test-module-C.md settings)
+const TEST = { kp_track: 0, kd_track: 0, kp_pulse: 0, kd_pulse: 0, kff: 2, baseline_n: 2, fmax_n: 30 };
+async function testSetup() {
+  if (S.state !== "DISARMED") { note("t-note", "Disarmed only (channels can't change while armed): Release first.", true); return; }
+  const mod = $("t-mod").value, p = S.params || {};
+  const patch = { ...TEST };
+  for (const m of MODS) patch[`ch_${m}`] = m === mod ? 1 : 0;
+  if (!S.saved) S.saved = Object.fromEntries(Object.keys(patch).map((k) => [k, p[k]]));   // keep the first snapshot
+  try {
+    await api("PATCH", "/params", patch);
+    note("t-note", `Test settings applied, only ${mod} enabled. Now Arm, then Pull.`);
+  } catch (e) { note("t-note", e.message, true); }
+  await refresh();
+}
+async function testPull() {
+  const mod = $("t-mod").value, f = parseFloat($("t-force").value), dur = parseFloat($("t-dur").value), p = S.params || {};
+  if (S.state !== "ARMED") { note("t-note", "Arm first (button at the top).", true); return; }
+  if (!(p[`ch_${mod}`] >= 1)) { note("t-note", `Module ${mod} is not enabled: apply the test settings for it first.`, true); return; }
+  if (!(f > 0) || p.baseline_n + f > p.fmax_n) { note("t-note", `Force must be > 0 and baseline + force ≤ max (${p.fmax_n} N).`, true); return; }
+  try {
+    const r = await api("POST", "/pulse", { amps: { [mod]: f }, delay_ms: 0, rise_ms: 50, dur_ms: dur, fall_ms: 50 });
+    note("t-note", `Pull ${r.pulse_id}: ${mod} +${f} N for ${dur} ms. Watch the live force plot.`);
+  } catch (e) { note("t-note", e.message, true); }
+}
+async function testRestore() {
+  if (!S.saved) { note("t-note", "Nothing saved: test settings were not applied in this page."); return; }
+  if (S.state !== "DISARMED") { note("t-note", "Release first, then restore.", true); return; }
+  const { fmax_n, ...rest } = S.saved;     // max force first, so the old baseline fits under it
+  try {
+    await api("PATCH", "/params", { fmax_n, ...rest });
+    S.saved = null; note("t-note", "Previous settings restored.");
+  } catch (e) { note("t-note", e.message, true); }
+  await refresh();
 }
 
 // ---------------------------------------------------------------- board settings
@@ -256,6 +294,7 @@ function init() {
   $("btn-connect").onclick = connectToggle;
   $("btn-arm").onclick = arm; $("btn-clear").onclick = clearFault; $("btn-release").onclick = release; $("btn-stop").onclick = stop;
   $("btn-perturb").onclick = perturb; $("btn-apply").onclick = applyParams;
+  $("t-setup").onclick = testSetup; $("t-pull").onclick = testPull; $("t-restore").onclick = testRestore;
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); stop(); } });
   $("angle").addEventListener("change", () => setAngle(parseFloat($("angle").value) || 0, false));
   for (const k of ["amplitude_n", "phase1_ms", "dur_ms", "phase2_ms", "delay_ms"]) $(k).addEventListener("input", drawProfile);

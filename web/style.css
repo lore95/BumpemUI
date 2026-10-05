@@ -41,6 +41,7 @@ h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; letter-spacing: .08em;
 .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .fields label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 .u { color: var(--muted); font-size: 11px; }
+.warn-text { color: var(--warn); }
 .muted { color: var(--muted); }
 .small { font-size: 12px; margin: 8px 0 0; }
 svg { display: block; width: 100%; height: auto; }
