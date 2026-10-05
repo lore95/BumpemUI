@@ -42,6 +42,11 @@ h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; letter-spacing: .08em;
 .fields label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 .u { color: var(--muted); font-size: 11px; }
 .warn-text { color: var(--warn); }
+.pulls { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.pulls th { text-align: left; font: 600 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.pulls td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.pulls input { width: 90px; }
+.pulls td:last-child { min-width: 260px; }
 .muted { color: var(--muted); }
 .small { font-size: 12px; margin: 8px 0 0; }
 svg { display: block; width: 100%; height: auto; }

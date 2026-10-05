@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bump'em Motor Test</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Bump'em <span>motor test</span></div>
+  <div class="conn">
+    <select id="port" aria-label="Board port"><option value="sim">simulator</option></select>
+    <button id="btn-connect">Connect</button>
+    <span id="conn-state" class="pill">not connected</span>
+    <span id="board-state" class="pill state">—</span>
+  </div>
+  <div class="actions">
+    <button id="btn-stop" class="stop" title="Drivers off now (key: Esc)">STOP <kbd>Esc</kbd></button>
+  </div>
+</header>
+<p id="mode-warning" class="stop-note" hidden></p>
+
+<main class="grid">
+  <section class="card wide" aria-labelledby="h-pulls">
+    <h2 id="h-pulls">One pull per motor</h2>
+    <p class="small warn-text">Rope tied to a fixed anchor · nobody attached · treadmill off · hand on the 48 V switch.</p>
+    <table class="pulls">
+      <thead><tr><th>Motor</th><th>Force <span class="u">N</span></th><th>Duration <span class="u">ms</span></th><th></th><th>Result</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p class="muted small">Each Pull: the server switches only that motor on, pulls once (50 ms ramps, force calculated from the motor current), then lets the rope go slack and puts every setting back. No arming, no constant tension. Duration 100–1000 ms, force up to 30 N.</p>
+  </section>
+</main>
+
+<script src="testing.js"></script>
+</body>
+</html>
