@@ -9,7 +9,7 @@ Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.2.0).
   - **Perturbation**: amplitude, phase 1, duration, phase 2, delay; profile preview; **Perturb now** → `POST /perturbation`.
   - **Gait phase (PTO)**: running cycle bar (stance 0–40, float 40–55, swing 55–85, float 85–100, thesis Fig. 1) + 8 clickable stick-figure runners; produces `pto {"mode": "cycle_pct", ...}`. "Perturb at gait phase" disabled until the server has PTO (API step 2).
   - **Board settings**: baseline, max force, channels A–D (`PATCH /params`).
-  - **Motor test (open loop)** (2026-10-05): pick module, force, duration → *Apply test settings* (gains 0, kff 2, baseline 2 N, max 30 N, only that module; saves the previous values) → Arm → *Pull* (one `POST /pulse`, 50 ms ramps) → *Restore previous settings*. Rope distance can't be set: no position sensor is wired (force and duration only).
+  - **Motor test (open loop)** (2026-10-05): pick module, force, **max force (firmware cap, default 5 N)**, duration, **hold tension (default 0 N: no constant tension after Arm)** → *Apply test settings* (gains 0, kff 2, only that module; saves the previous values) → Arm (records each sensor's reading as zero; live values show the change since Arm) → *Pull* (one `POST /pulse`, 50 ms ramps) → *Restore previous settings*. Buttons stay clickable and explain when the board is in the wrong state. Rope distance can't be set: no position sensor.
   - **Live force**: last 10 s, measured (solid) / target (dashed) per enabled module, from the WebSocket stream.
 - Folder created (BumpemServer D11).
 

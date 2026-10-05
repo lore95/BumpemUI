@@ -85,13 +85,18 @@ function updateButtons() {
   $("btn-perturb").disabled = !(S.connected && armed && angleReachable(S.angle) !== false);
   $("btn-apply").disabled = !S.connected;
   $("btn-clear").hidden = !(S.connected && S.state === "FAULT");
-  $("t-setup").disabled = !(S.connected && S.state === "DISARMED");
-  $("t-pull").disabled = !(S.connected && armed);
-  $("t-restore").disabled = !(S.connected && S.saved && S.state === "DISARMED");
+  // motor test buttons stay clickable: their handlers say what to do when the board is in the wrong state
+  for (const id of ["t-setup", "t-pull", "t-restore"]) $(id).disabled = !S.connected;
 }
 
 // ---------------------------------------------------------------- actions
-async function arm() { try { await api("POST", "/arm"); } catch (e) { note("pert-result", e.message, true); } }
+async function arm() {
+  const last = S.hist[S.hist.length - 1];
+  S.zero = last ? { ...last.measured } : null;        // sensor readings at Arm = zero for the live values
+  try { await api("POST", "/arm"); } catch (e) { note("pert-result", e.message, true); return; }
+  if (S.zero) note("t-note", "Zero recorded at Arm: " + MODS.filter((m) => !S.params || S.params[`ch_${m}`] >= 1)
+    .map((m) => `${m} ${S.zero[m].toFixed(1)} N`).join(", "));
+}
 async function clearFault() { try { await api("POST", "/clear"); note("pert-result", "cleared"); } catch (e) { note("pert-result", e.message, true); } }
 async function release() {
   if (!confirm("Is the treadmill stopped?\n\nRelease ramps every rope to 0 N and switches the drivers off.")) return;
@@ -112,18 +117,22 @@ async function perturb() {
 }
 
 // ---------------------------------------------------------------- motor test (open loop, docs/tests/open-loop-test-module-C.md settings)
-const TEST = { kp_track: 0, kd_track: 0, kp_pulse: 0, kd_pulse: 0, kff: 2, baseline_n: 0, fmax_n: 30 };   // baseline from "Hold tension"
+const TEST = { kp_track: 0, kd_track: 0, kp_pulse: 0, kd_pulse: 0, kff: 2, baseline_n: 0, fmax_n: 5 };   // baseline / cap from the card
 async function testSetup() {
-  if (S.state !== "DISARMED") { note("t-note", "Disarmed only (channels can't change while armed): Release first.", true); return; }
+  if (S.state !== "DISARMED") {
+    const how = S.state === "ESTOP" ? "Arm, then Release…" : S.state === "FAULT" ? "Clear fault, then Release…" : "Release… first";
+    note("t-note", `Board is ${S.state}: settings can only change while DISARMED. ${how}`, true); return;
+  }
   const mod = $("t-mod").value, p = S.params || {};
-  const hold = parseFloat($("t-hold").value);
-  if (!(hold >= 0 && hold <= TEST.fmax_n)) { note("t-note", `Hold tension must be 0–${TEST.fmax_n} N.`, true); return; }
-  const patch = { ...TEST, baseline_n: hold };
+  const hold = parseFloat($("t-hold").value), cap = parseFloat($("t-max").value);
+  if (!(cap >= 1 && cap <= 30)) { note("t-note", "Max force must be 1–30 N.", true); return; }
+  if (!(hold >= 0 && hold <= cap)) { note("t-note", `Hold tension must be 0–${cap} N (max force).`, true); return; }
+  const patch = { ...TEST, baseline_n: hold, fmax_n: cap };
   for (const m of MODS) patch[`ch_${m}`] = m === mod ? 1 : 0;
   if (!S.saved) S.saved = Object.fromEntries(Object.keys(patch).map((k) => [k, p[k]]));   // keep the first snapshot
   try {
     await api("PATCH", "/params", patch);
-    note("t-note", `Test settings applied: only ${mod} on, hold tension ${hold} N. Now Arm, then Pull.`);
+    note("t-note", `Test settings applied: only ${mod} on, hold tension ${hold} N, capped at ${cap} N. Now Arm, then Pull.`);
   } catch (e) { note("t-note", e.message, true); }
   await refresh();
 }
@@ -290,7 +299,10 @@ function drawPlot() {
       }
       g.setLineDash([]);
       const last = h[h.length - 1], lv = $(`lv-${m}`);
-      if (lv) lv.textContent = `${(last.measured[m] || 0).toFixed(1)} / ${(last.target[m] || 0).toFixed(1)} N`;
+      if (lv) {
+        const meas = last.measured[m] || 0, dz = S.zero && S.state !== "DISARMED" ? ` (Δ ${(meas - (S.zero[m] || 0)).toFixed(1)})` : "";
+        lv.textContent = `${meas.toFixed(1)}${dz} / ${(last.target[m] || 0).toFixed(1)} N`;
+      }
     }
   }
   requestAnimationFrame(drawPlot);
