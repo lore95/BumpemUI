@@ -3,7 +3,7 @@
 const API = "/api/v1";
 const MODS = ["A", "B", "C", "D"];
 const $ = (id) => document.getElementById(id);
-const S = { connected: false, state: null, geometry: null, params: null, angle: 180, cycle: 20, ws: null, hist: [] };
+const S = { connected: false, state: null, geometry: null, params: null, angle: 180, cycle: 20, ws: null, hist: [], recording: false, logTimer: null };
 
 // ---------------------------------------------------------------- API
 async function api(method, path, body) {
@@ -49,6 +49,7 @@ async function refresh() {
     setState(st.state); S.geometry = geo; S.params = par;
     fillParams(); drawDial(); checkAngle();
   } catch (e) { note("params-note", e.message, true); if (!S.state) setState(null); }
+  loadSettings(); loadLog();
 }
 
 // ---------------------------------------------------------------- live stream
@@ -84,6 +85,10 @@ function updateButtons() {
   $("btn-release").disabled = !(S.connected && (armed || S.state === "FAULT"));
   $("btn-perturb").disabled = !(S.connected && armed && angleReachable(S.angle) !== false);
   $("btn-apply").disabled = !S.connected;
+  const idle = S.connected && (S.state === "DISARMED" || S.state === "ESTOP");
+  $("btn-zero").disabled = !idle; $("btn-save").disabled = !S.connected;
+  $("btn-record").disabled = !S.connected; $("btn-record").textContent = S.recording ? "Stop recording" : "Record";
+  $("btn-record").classList.toggle("stop", S.recording);
   $("btn-clear").hidden = !(S.connected && S.state === "FAULT");
 }
 
@@ -117,7 +122,7 @@ async function perturb() {
 // ---------------------------------------------------------------- board settings
 function fillParams() {
   const p = S.params || {};
-  $("p-baseline_n").value = p.baseline_n ?? ""; $("p-fmax_n").value = p.fmax_n ?? "";
+  $("p-baseline_n").value = p.baseline_n ?? ""; $("p-fmax_n").value = p.fmax_n ?? ""; $("p-kff").value = p.kff ?? "";
   $("chans").innerHTML = MODS.map((m) => {
     const name = { A: "left", B: "front", C: "right", D: "back" }[m];
     return `<label><input type="checkbox" id="ch-${m}" ${p[`ch_${m}`] >= 1 ? "checked" : ""}> ${m} <span class="muted">${name}</span></label>`;
@@ -126,7 +131,7 @@ function fillParams() {
 }
 async function applyParams() {
   const p = S.params || {}, patch = {};
-  for (const k of ["baseline_n", "fmax_n"]) { const v = parseFloat($(`p-${k}`).value); if (!isNaN(v) && v !== p[k]) patch[k] = v; }
+  for (const k of ["baseline_n", "fmax_n", "kff"]) { const v = parseFloat($(`p-${k}`).value); if (!isNaN(v) && v !== p[k]) patch[k] = v; }
   for (const m of MODS) { const v = $(`ch-${m}`).checked ? 1 : 0; if (v !== (p[`ch_${m}`] >= 1 ? 1 : 0)) patch[`ch_${m}`] = v; }
   if (!Object.keys(patch).length) { note("params-note", "nothing changed"); return; }
   try { S.params = await api("PATCH", "/params", patch); note("params-note", "applied: " + Object.keys(patch).join(", ")); }
@@ -265,11 +270,60 @@ function drawPlot() {
   requestAnimationFrame(drawPlot);
 }
 
+// ---------------------------------------------------------------- zero, saved defaults, recording (API.md "Saved settings", "Recording")
+async function zeroSensors() {   // DISARMED / ESTOP only: mean of the last 2 s per enabled module → offset so it reads 0
+  const p = S.params || {}, last = S.hist[S.hist.length - 1], recent = last ? S.hist.filter((h) => last.t_ms - h.t_ms <= 2000) : [];
+  if (recent.length < 20) { note("params-note", "not enough live data yet (wait 2 s)", true); return; }
+  const patch = {}, shown = [];
+  for (const m of MODS) {
+    if (!(p[`ch_${m}`] >= 1)) continue;
+    const mean = recent.reduce((a, h) => a + (h.measured[m] || 0), 0) / recent.length;
+    const off = Math.round(((p[`offset_${m}`] || 0) - mean) * 100) / 100;
+    if (Math.abs(off) > 20) { note("params-note", `${m} rests at ${mean.toFixed(1)} N: beyond the ±20 N offset range. Check its sensor wiring.`, true); return; }
+    patch[`offset_${m}`] = off; shown.push(`${m} ${mean.toFixed(1)} N → 0`);
+  }
+  if (!shown.length) { note("params-note", "no enabled module"); return; }
+  try { S.params = await api("PATCH", "/params", patch); note("params-note", "zeroed: " + shown.join(", ") + ". Save as default to keep it."); }
+  catch (e) { note("params-note", e.message, true); }
+}
+function showSettings(s) {
+  if (!s.file) { note("settings-note", "Saved defaults are switched off on this server."); return; }
+  if (!s.params) { note("settings-note", "No saved defaults yet: the board runs on its current values."); return; }
+  const when = (s.saved || "").replace("T", " ");
+  note("settings-note", s.pending ? `Defaults from ${when} wait until the board is DISARMED.`
+    : s.message ? `Defaults from ${when} applied, except ${s.message}` : `Defaults saved ${when}: kff ${s.params.kff}, baseline ${s.params.baseline_n} N, max ${s.params.fmax_n} N.`,
+    !!s.message);
+}
+async function loadSettings() { try { showSettings(await api("GET", "/settings")); } catch (e) { /* older server */ } }
+async function saveDefaults() {
+  try { showSettings(await api("POST", "/settings")); } catch (e) { note("settings-note", e.message, true); }
+}
+function showLog(l) {
+  S.recording = !!l.recording;
+  const name = (l.file || "").split(/[\\/]/).pop();
+  note("log-note", l.recording ? `Recording ${name}: ${l.rows} rows, ${l.duration_s.toFixed(1)} s`
+    : l.file ? `Saved ${l.rows} rows (${l.duration_s.toFixed(1)} s) to ${l.file}` : "");
+  clearInterval(S.logTimer); S.logTimer = l.recording ? setInterval(loadLog, 1000) : null;
+  updateButtons();
+}
+async function loadLog() { try { const l = await api("GET", "/log"); if (l.recording || S.recording) showLog(l); } catch (e) { /* older server */ } }
+async function recordToggle() {
+  try {
+    if (S.recording) showLog(await api("POST", "/log/stop"));
+    else {
+      const label = $("log-label").value.trim();
+      if (!/^[A-Za-z0-9_-]{0,40}$/.test(label)) { note("log-note", "Label: letters, digits, _ and - only", true); return; }
+      showLog(await api("POST", "/log/start", { label }));
+    }
+  } catch (e) { note("log-note", e.message, true); }
+}
+
 // ---------------------------------------------------------------- wiring
 function init() {
   $("btn-connect").onclick = connectToggle;
   $("btn-arm").onclick = arm; $("btn-clear").onclick = clearFault; $("btn-release").onclick = release; $("btn-stop").onclick = stop;
   $("btn-perturb").onclick = perturb; $("btn-apply").onclick = applyParams;
+  $("btn-zero").onclick = zeroSensors; $("btn-save").onclick = saveDefaults; $("btn-record").onclick = recordToggle;
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); stop(); } });
   $("angle").addEventListener("change", () => setAngle(parseFloat($("angle").value) || 0, false));
   for (const k of ["amplitude_n", "phase1_ms", "dur_ms", "phase2_ms", "delay_ms"]) $(k).addEventListener("input", drawProfile);

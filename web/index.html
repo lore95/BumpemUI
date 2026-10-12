@@ -68,16 +68,27 @@
     <div class="fields">
       <label>Baseline <span class="u">N</span><input id="p-baseline_n" type="number" step="0.5" min="0"></label>
       <label>Max force <span class="u">N (firmware clamp)</span><input id="p-fmax_n" type="number" step="1" min="0"></label>
+      <label>Feedforward gain <span class="u">kff</span><input id="p-kff" type="number" step="0.1" min="0" max="20"></label>
     </div>
     <div class="chans" id="chans"></div>
     <div class="row"><button id="btn-apply">Apply</button><span id="params-note" class="muted small"></span></div>
-    <p class="muted small">Channels can only be switched while DISARMED or stopped (ESTOP).</p>
+    <div class="row">
+      <button id="btn-zero" title="Ropes slack, DISARMED: sets each enabled sensor's offset so it reads 0 N">Zero sensors</button>
+      <button id="btn-save" title="Stores every board parameter on this PC; the server writes them to the board at each connect">Save as default</button>
+    </div>
+    <p id="settings-note" class="muted small"></p>
+    <p class="muted small">Channels can only be switched while DISARMED or stopped (ESTOP). A Teensy replug resets the board to firmware values; saved defaults are written back at connect.</p>
   </section>
 
   <section class="card" aria-labelledby="h-live">
     <h2 id="h-live">Live force</h2>
     <canvas id="plot" width="640" height="260" aria-label="Measured (solid) and target (dashed) force per module, last 10 s"></canvas>
     <div id="legend" class="legend"></div>
+    <div class="row">
+      <label>Label <input id="log-label" type="text" maxlength="40" placeholder="closedloop_A" pattern="[A-Za-z0-9_-]*"></label>
+      <button id="btn-record" title="Writes every telemetry line (full board rate) and the pulses sent to CSV files on the server PC">Record</button>
+    </div>
+    <p id="log-note" class="muted small"></p>
   </section>
 </main>
 

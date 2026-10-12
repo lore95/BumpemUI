@@ -22,3 +22,9 @@ Alternatives: lab photos; walking cycle; stance % only.
 Decision: the live force plot is a plain canvas (10 s window, ~60 fps redraw, 30 Hz data).
 Reason: 4 channels × 2 lines is simple; nothing to vendor or update.
 Alternatives: uPlot / Chart.js saved in the repo.
+
+## U5 — 2026-10-12 — Zeroing is done in the UI, storing on the server
+Decision: "Zero sensors" averages the last 2 s of the stream per enabled module and sends `offset_*` with `PATCH /params`; "Save as default" only calls `POST /settings`. Recording is a start/stop button with an optional label.
+Reason: zeroing needs nothing the API lacks; keeping the file on the server means every client (UI, MATLAB, scripts) gets the same values after a replug.
+Alternatives: a server endpoint for zeroing (add when a second client needs it); storing defaults in the browser (lost on another PC or browser).
+---
