@@ -110,9 +110,18 @@ function stop() {   // never asks: emergency
   fetch(API + "/estop", { method: "POST" }).catch(() => {});
   note("pert-result", "STOP sent: drivers off, ropes slack.", true);
 }
+function ampLimit() {   // largest amplitude the board accepts: baseline + amplitude <= fmax_n on the pulling rope
+  const p = S.params || {};
+  return p.fmax_n == null || p.baseline_n == null ? null : Math.max(0, p.fmax_n - p.baseline_n);
+}
 async function perturb() {
   const body = { angle_deg: S.angle };
   for (const k of ["amplitude_n", "phase1_ms", "dur_ms", "phase2_ms", "delay_ms"]) body[k] = parseFloat($(k).value);
+  const ampMax = ampLimit();
+  if (ampMax !== null && body.amplitude_n > ampMax) {
+    note("pert-result", `Amplitude ${body.amplitude_n} N is above the limit ${ampMax} N (Max force ${S.params.fmax_n} − baseline ${S.params.baseline_n}). Raise Max force under Board settings.`, true);
+    return;
+  }
   try {
     const r = await api("POST", "/perturbation", body);
     note("pert-result", `pulse ${r.pulse_id}: ` + Object.entries(r.amps).map(([m, v]) => `${m} +${v} N`).join(", "));
@@ -123,6 +132,9 @@ async function perturb() {
 function fillParams() {
   const p = S.params || {};
   $("p-baseline_n").value = p.baseline_n ?? ""; $("p-fmax_n").value = p.fmax_n ?? ""; $("p-kff").value = p.kff ?? "";
+  const ampMax = ampLimit();
+  $("amp-max").textContent = ampMax === null ? "max ?" : `max ${ampMax} N (Max force − baseline)`;
+  if (ampMax !== null) $("amplitude_n").max = ampMax;
   $("chans").innerHTML = MODS.map((m) => {
     const name = { A: "left", B: "front", C: "right", D: "back" }[m];
     return `<label><input type="checkbox" id="ch-${m}" ${p[`ch_${m}`] >= 1 ? "checked" : ""}> ${m} <span class="muted">${name}</span></label>`;

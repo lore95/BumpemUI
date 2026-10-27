@@ -3,6 +3,7 @@
 Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.4.0).
 
 ## Done
+- **Perturbation amplitude limit shown (2026-10-27):** next to Amplitude: `max = fmax_n − baseline_n` from `GET /params`; Perturb now refuses a larger amplitude with a message naming Max force (before: the board rejected it and nothing pulled). Lab setting now fmax_n 196 N (20 kg), fault_n 200 N.
 - **Zero, defaults, recording (2026-10-12, BumpemServer D20/D21, U5):** production page: Feedforward gain (kff) field; **Zero sensors** (DISARMED/ESTOP: 2 s mean of each enabled module → `offset_*` via `PATCH /params`, refused beyond ±20 N); **Save as default** (`POST /settings`, note shows what is saved / pending / refused); **Record** with label (`POST /log/start|stop`, live row count, file path when stopped). Checked in Chrome against the simulator.
 - **Two pages (2026-10-05, BumpemServer D19):** `web/testing.html` (server `--testing`): per motor force + duration → Pull (`POST /test/pull`), STOP/Esc, board state; `web/index.html` (server `--production`, default): the full UI below, Motor test card removed. Each page warns when the server runs in the other mode.
 - **First UI (2026-10-05), `web/`** (plain HTML/CSS/JS, black theme), served by `bumpem serve` at http://127.0.0.1:8000/ui/. Tested against the simulator in Chrome:
