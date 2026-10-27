@@ -17,7 +17,7 @@ function buildRows() {
   $("rows").innerHTML = MODS.map(([m, side]) => `
     <tr>
       <td><b style="color:var(--ch-${m})">${m}</b> <span class="muted">${side}</span></td>
-      <td><input id="f-${m}" type="number" min="0.5" max="30" step="0.5" value="5"></td>
+      <td><input id="f-${m}" type="number" min="0.5" max="150" step="0.5" value="5"></td>
       <td><input id="d-${m}" type="number" min="100" max="1000" step="50" value="400"></td>
       <td><button id="p-${m}" class="primary">Pull</button></td>
       <td id="r-${m}" class="muted small">—</td>

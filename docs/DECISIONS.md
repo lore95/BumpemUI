@@ -28,3 +28,6 @@ Decision: "Zero sensors" averages the last 2 s of the stream per enabled module 
 Reason: zeroing needs nothing the API lacks; keeping the file on the server means every client (UI, MATLAB, scripts) gets the same values after a replug.
 Alternatives: a server endpoint for zeroing (add when a second client needs it); storing defaults in the browser (lost on another PC or browser).
 ---
+
+## 2026-10-27 — Testing page force up to 150 N
+Follows BumpemServer D26 (`POST /test/pull` `force_n` ≤ 150).
