@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bump'em Control</title>
+<title>Bump'em Test</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">Bump'em <span>control</span></div>
+  <div class="brand">Bump'em <span>test</span></div>
   <div class="conn">
     <select id="port" aria-label="Board port"><option value="sim">simulator</option></select>
     <button id="btn-connect">Connect</button>
@@ -48,19 +48,8 @@
     <svg id="profile" viewBox="0 0 360 90" role="img" aria-label="Force profile preview"></svg>
     <div class="row">
       <button id="btn-perturb" class="primary">Perturb now</button>
-      <button id="btn-perturb-pto" disabled title="Needs gait-event triggering in the server (API step 2, planned)">Perturb at gait phase</button>
     </div>
     <p id="pert-result" class="muted small"></p>
-  </section>
-
-  <section class="card wide" aria-labelledby="h-gait">
-    <h2 id="h-gait">Gait phase (PTO)</h2>
-    <svg id="gait" viewBox="0 0 880 232" role="img" aria-label="Running gait cycle; click a runner to choose the perturbation timing"></svg>
-    <div class="row">
-      <label>Cycle <input id="cycle_pct" type="number" min="0" max="99.9" step="0.5" value="20"> % after foot strike</label>
-      <span id="pto-text" class="muted"></span>
-    </div>
-    <p class="muted small">Running gait cycle (thesis Fig. 1): stance 0–40 %, float 40–55 %, swing 55–85 %, float 85–100 %. Timing reference: foot strike of the highlighted leg.</p>
   </section>
 
   <section class="card" aria-labelledby="h-board">
@@ -80,19 +69,18 @@
     <p class="muted small">Channels can only be switched while DISARMED or stopped (ESTOP). A Teensy replug resets the board to firmware values; saved defaults are written back at connect.</p>
   </section>
 
-  <section class="card" aria-labelledby="h-live">
+  <section class="card wide" aria-labelledby="h-live">
     <h2 id="h-live">Live force</h2>
-    <canvas id="plot" width="640" height="260" aria-label="Measured (solid) and target (dashed) force per module, last 10 s"></canvas>
+    <canvas id="plot" aria-label="Measured (solid) and target (dashed) force per module, last 10 s"></canvas>
     <div id="legend" class="legend"></div>
     <div class="row">
-      <label>Label <input id="log-label" type="text" maxlength="40" placeholder="closedloop_A" pattern="[A-Za-z0-9_-]*"></label>
-      <button id="btn-record" title="Writes every telemetry line (full board rate) and the pulses sent to CSV files on the server PC">Record</button>
+      <label>Label <input id="log-label" type="text" maxlength="40" placeholder="pull_A_50N" pattern="[A-Za-z0-9_-]*"></label>
+      <button id="btn-record" title="Records every telemetry line (full board rate) and the pulses sent; Stop downloads the force CSV">Record</button>
     </div>
     <p id="log-note" class="muted small"></p>
   </section>
 </main>
 
-<script src="gait.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

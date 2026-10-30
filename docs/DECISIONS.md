@@ -31,3 +31,8 @@ Alternatives: a server endpoint for zeroing (add when a second client needs it);
 
 ## 2026-10-27 — Testing page force up to 150 N
 Follows BumpemServer D26 (`POST /test/pull` `force_n` ≤ 150).
+
+## U6 — 2026-10-30 — Production page becomes the test UI
+Decision: `/ui/` (production mode) keeps Direction (angle), Perturbation (force + timing), Board settings; the gait-phase card and `gait.js` are removed (in git history, commit e6da8f6 and earlier); the live plot spans the full width (55 % of the window height, time axis in s); Stop recording downloads the force CSV (`GET /log/file`, BumpemServer D27), with links to both CSVs in the note. The testing page (`--testing`, open-loop pull per motor) is unchanged.
+Reason: lab meeting 2026-10-29: test pulls by force and angle, big live graph, record with CSV export; the next UI will be built from the parameters defined there.
+Alternatives: keep the gait picker disabled on the page (clutter until PTO exists).

@@ -3,6 +3,7 @@
 Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.4.0).
 
 ## Done
+- **Test UI (2026-10-30, U6):** `/ui/` = test page: angle dial, perturbation (force + timing), board settings, full-width live plot; Record → Stop downloads the force CSV, note links force + events CSV (`GET /log/file`, server D27). Gait-phase card and `gait.js` removed. Checked in Chrome against the simulator (record, arm, perturb, plot). Next: new UI from the 2026-10-29 meeting parameters.
 - **Perturbation amplitude limit shown (2026-10-27):** next to Amplitude: `max = fmax_n − baseline_n` from `GET /params`; Perturb now refuses a larger amplitude with a message naming Max force (before: the board rejected it and nothing pulled). Lab setting now fmax_n 196 N (20 kg), fault_n 200 N.
 - **Zero, defaults, recording (2026-10-12, BumpemServer D20/D21, U5):** production page: Feedforward gain (kff) field; **Zero sensors** (DISARMED/ESTOP: 2 s mean of each enabled module → `offset_*` via `PATCH /params`, refused beyond ±20 N); **Save as default** (`POST /settings`, note shows what is saved / pending / refused); **Record** with label (`POST /log/start|stop`, live row count, file path when stopped). Checked in Chrome against the simulator.
 - **Two pages (2026-10-05, BumpemServer D19):** `web/testing.html` (server `--testing`): per motor force + duration → Pull (`POST /test/pull`), STOP/Esc, board state; `web/index.html` (server `--production`, default): the full UI below, Motor test card removed. Each page warns when the server runs in the other mode.
@@ -17,7 +18,7 @@ Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.4.0).
 
 ## Next
 1. On the real Teensy: `bumpem serve --testing --board /dev/cu.usbmodem169222501` → http://127.0.0.1:8000/ → Pull each motor (5 N, 400 ms): does the right rope move?
-2. When the server has PTO (API step 2): enable "Perturb at gait phase", show gait events from the stream.
+2. When the server has PTO (API step 2): gait-phase picker back (git history, `web/gait.js`), show gait events from the stream.
 3. Trials page (API step 3): blocks, shuffle, 50–75 steps, recovery, progress.
 
 ## Open

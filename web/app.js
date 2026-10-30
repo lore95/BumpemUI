@@ -3,7 +3,7 @@
 const API = "/api/v1";
 const MODS = ["A", "B", "C", "D"];
 const $ = (id) => document.getElementById(id);
-const S = { connected: false, state: null, geometry: null, params: null, angle: 180, cycle: 20, ws: null, hist: [], recording: false, logTimer: null };
+const S = { connected: false, state: null, geometry: null, params: null, angle: 180, ws: null, hist: [], recording: false, logTimer: null };
 
 // ---------------------------------------------------------------- API
 async function api(method, path, body) {
@@ -236,14 +236,6 @@ function drawProfile() {
   t.textContent = bad ? "phase 1 + phase 2 longer than the duration" : `baseline +${amp} N · ${dur} ms · start after ${del} ms`;
 }
 
-// ---------------------------------------------------------------- gait phase (PTO)
-function setCycle(pct) {
-  S.cycle = Math.min(99.9, Math.max(0, pct)); $("cycle_pct").value = S.cycle; Gait.set(S.cycle);
-  const phase = Gait.phaseOf(S.cycle);
-  const where = S.cycle < 40 ? `${(S.cycle / 0.4).toFixed(1)} % into stance` : phase;
-  $("pto-text").textContent = `${where} · pto {"mode": "cycle_pct", "value": ${S.cycle}}`;
-}
-
 // ---------------------------------------------------------------- live plot
 function renderLegend() {
   const on = MODS.filter((m) => !S.params || S.params[`ch_${m}`] >= 1);
@@ -251,23 +243,26 @@ function renderLegend() {
     '<span>solid measured · dashed target</span>';
 }
 function drawPlot() {
-  const c = $("plot"), g = c.getContext("2d"), W = c.width, H = c.height;
+  const c = $("plot"), g = c.getContext("2d"), dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);   // draw in CSS pixels, sharp on any screen size
   g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
   const h = S.hist, on = MODS.filter((m) => !S.params || S.params[`ch_${m}`] >= 1);
   let fmax = 20;
   for (const s of h) for (const m of on) fmax = Math.max(fmax, s.target[m] || 0, s.measured[m] || 0);
   fmax = Math.ceil(fmax * 1.15 / 10) * 10;
-  g.strokeStyle = "#1a201d"; g.fillStyle = "#8b9690"; g.font = "11px monospace"; g.lineWidth = 1;
-  for (let f = 0; f <= fmax; f += fmax / 4) {
-    const y = H - 18 - (H - 30) * f / fmax; g.beginPath(); g.moveTo(36, y); g.lineTo(W, y); g.stroke(); g.fillText(f.toFixed(0), 4, y + 4);
+  g.strokeStyle = "#1a201d"; g.fillStyle = "#8b9690"; g.font = "13px monospace"; g.lineWidth = 1;
+  for (let f = 0; f <= fmax; f += fmax / 5) {
+    const y = H - 22 - (H - 44) * f / fmax; g.beginPath(); g.moveTo(44, y); g.lineTo(W, y); g.stroke(); g.fillText(f.toFixed(0), 4, y + 4);
   }
-  g.fillText("N", 4, 12); g.fillText("last 10 s", W - 64, H - 4);
+  for (let s = 0; s <= 10; s += 2) { const x = 44 + (W - 48) * (1 - s / 10); g.fillText(s ? `-${s} s` : "now", x - (s ? 14 : 28), H - 4); }
+  g.fillText("N", 4, 14);
   if (h.length > 1) {
-    const t1 = h[h.length - 1].t_ms, X = (t) => 36 + (W - 40) * (1 - (t1 - t) / 10000), Y = (f) => H - 18 - (H - 30) * f / fmax;
+    const t1 = h[h.length - 1].t_ms, X = (t) => 44 + (W - 48) * (1 - (t1 - t) / 10000), Y = (f) => H - 22 - (H - 44) * f / fmax;
     for (const m of on) {
       const col = getComputedStyle(document.documentElement).getPropertyValue(`--ch-${m}`).trim();
       for (const [key, dash] of [["target", [5, 4]], ["measured", []]]) {
-        g.strokeStyle = col; g.setLineDash(dash); g.lineWidth = key === "measured" ? 1.8 : 1.2; g.beginPath();
+        g.strokeStyle = col; g.setLineDash(dash); g.lineWidth = key === "measured" ? 2.2 : 1.4; g.beginPath();
         h.forEach((s, i) => { const x = X(s.t_ms), y = Y(s[key][m] || 0); i ? g.lineTo(x, y) : g.moveTo(x, y); });
         g.stroke();
       }
@@ -314,14 +309,24 @@ function showLog(l) {
   S.recording = !!l.recording;
   const name = (l.file || "").split(/[\\/]/).pop();
   note("log-note", l.recording ? `Recording ${name}: ${l.rows} rows, ${l.duration_s.toFixed(1)} s`
-    : l.file ? `Saved ${l.rows} rows (${l.duration_s.toFixed(1)} s) to ${l.file}` : "");
+    : l.file ? `Saved ${l.rows} rows (${l.duration_s.toFixed(1)} s), also on the server PC at ${l.file}. Download: ` : "");
+  if (!l.recording && l.file) {
+    for (const [kind, text] of [["force", "force CSV"], ["events", "events CSV (pulses sent)"]]) {
+      const link = document.createElement("a"); link.href = `${API}/log/file?kind=${kind}`; link.download = ""; link.textContent = text;
+      $("log-note").append(kind === "events" ? " · " : "", link);
+    }
+  }
   clearInterval(S.logTimer); S.logTimer = l.recording ? setInterval(loadLog, 1000) : null;
   updateButtons();
 }
 async function loadLog() { try { const l = await api("GET", "/log"); if (l.recording || S.recording) showLog(l); } catch (e) { /* older server */ } }
+function download(kind) {   // last finished recording, from the server (API.md "Recording")
+  const a = document.createElement("a");
+  a.href = `${API}/log/file?kind=${kind}`; a.download = ""; document.body.appendChild(a); a.click(); a.remove();
+}
 async function recordToggle() {
   try {
-    if (S.recording) showLog(await api("POST", "/log/stop"));
+    if (S.recording) { showLog(await api("POST", "/log/stop")); download("force"); }
     else {
       const label = $("log-label").value.trim();
       if (!/^[A-Za-z0-9_-]{0,40}$/.test(label)) { note("log-note", "Label: letters, digits, _ and - only", true); return; }
@@ -339,9 +344,7 @@ function init() {
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); stop(); } });
   $("angle").addEventListener("change", () => setAngle(parseFloat($("angle").value) || 0, false));
   for (const k of ["amplitude_n", "phase1_ms", "dur_ms", "phase2_ms", "delay_ms"]) $(k).addEventListener("input", drawProfile);
-  $("cycle_pct").addEventListener("change", () => setCycle(parseFloat($("cycle_pct").value) || 0));
-  Gait.init($("gait"), setCycle);
-  setCycle(S.cycle); drawProfile(); drawDial(); renderLegend(); updateButtons(); requestAnimationFrame(drawPlot);
+  drawProfile(); drawDial(); renderLegend(); updateButtons(); requestAnimationFrame(drawPlot);
   loadPorts();
   api("GET", "/info").then((info) => {
     if (info.mode && info.mode !== "production") {

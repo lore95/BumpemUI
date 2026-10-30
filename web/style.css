@@ -52,8 +52,8 @@ h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; letter-spacing: .08em;
 svg { display: block; width: 100%; height: auto; }
 #dial { max-width: 420px; margin: 0 auto; }
 #profile { margin-top: 12px; background: #000; border: 1px solid var(--line); border-radius: 6px; }
-#plot { width: 100%; height: auto; background: #000; border: 1px solid var(--line); border-radius: 6px; }
-.legend { display: flex; gap: 14px; flex-wrap: wrap; font: 12px var(--mono); margin-top: 8px; color: var(--muted); }
+#plot { display: block; width: 100%; height: clamp(300px, 55vh, 620px); background: #000; border: 1px solid var(--line); border-radius: 6px; }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; font: 14px var(--mono); margin-top: 8px; color: var(--muted); }
 .legend b { font-weight: 600; }
 .chans { display: flex; gap: 14px; margin-top: 12px; flex-wrap: wrap; }
 .chans label { display: flex; gap: 6px; align-items: center; font-family: var(--mono); }
@@ -69,21 +69,5 @@ svg { display: block; width: 100%; height: auto; }
 .dial-head { fill: var(--accent); }
 .dial-person { fill: #1d2421; stroke: var(--muted); stroke-width: 1.2; }
 
-/* gait strip */
-.gait-band { stroke: var(--line); }
-.gait-band-label { fill: var(--fg); font: 600 11px var(--sans); text-anchor: middle; }
-.gait-axis { fill: var(--muted); font: 10px var(--mono); text-anchor: middle; }
-.runner { cursor: pointer; }
-.runner rect { fill: transparent; stroke: transparent; rx: 8; }
-.runner:hover rect { stroke: var(--line); }
-.runner:focus { outline: none; }
-.runner:focus-visible rect { stroke: var(--muted); }
-.runner.sel rect { stroke: var(--accent); fill: rgba(79,209,165,.08); }
-.runner .near { stroke: var(--fg); stroke-width: 3.2; stroke-linecap: round; fill: none; }
-.runner .far { stroke: #5a6560; stroke-width: 3.2; stroke-linecap: round; fill: none; }
-.runner .head { fill: var(--fg); }
-.runner.sel .near { stroke: var(--accent); }
-.runner.sel .head { fill: var(--accent); }
-.gait-marker { stroke: var(--accent); stroke-width: 2; }
-
+@media (min-width: 1100px) { .grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 700px) { .topbar { padding: 10px 12px; } .grid { padding: 12px; } }
