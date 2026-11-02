@@ -1,7 +1,7 @@
 :root {
   --bg: #050606; --panel: #0e1110; --panel-2: #151a18; --line: #262d2a; --fg: #e8ece9; --muted: #8b9690;
   --accent: #4fd1a5; --disabled: #2a302d; --warn: #f0b429; --stop: #e5484d;
-  --ch-A: #4fd1a5; --ch-B: #7aa2f7; --ch-C: #f0b429; --ch-D: #e07bd8;
+  --ch-A: #4fd1a5; --ch-B: #7aa2f7; --ch-C: #f0b429; --ch-D: #e07bd8; --plate-0: #5ec8f2; --plate-1: #f2994a;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color-scheme: dark;
@@ -31,9 +31,11 @@ input[type=number] { width: 100%; font-family: var(--mono); }
 .pill.state.FAULT, .pill.state.ESTOP { color: #fff; background: var(--stop); border-color: var(--stop); }
 .stop-note { margin: 8px 20px 0; color: var(--warn); font-size: 13px; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; padding: 16px 20px 40px; }
+.grid { display: grid; grid-template-columns: 1fr; gap: 16px; padding: 16px 20px 40px; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px 16px; min-width: 0; }
 .card.wide { grid-column: 1 / -1; }
+h2 .muted { text-transform: none; letter-spacing: 0; font-weight: 400; }
 h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
 .row label { display: flex; gap: 6px; align-items: center; }
@@ -48,11 +50,12 @@ h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; letter-spacing: .08em;
 .pulls input { width: 90px; }
 .pulls td:last-child { min-width: 260px; }
 .muted { color: var(--muted); }
+.rec { color: var(--stop) !important; }
 .small { font-size: 12px; margin: 8px 0 0; }
 svg { display: block; width: 100%; height: auto; }
-#dial { max-width: 420px; margin: 0 auto; }
-#profile { margin-top: 12px; background: #000; border: 1px solid var(--line); border-radius: 6px; }
-#plot { display: block; width: 100%; height: clamp(300px, 55vh, 620px); background: #000; border: 1px solid var(--line); border-radius: 6px; }
+#dial { max-width: 300px; margin: 0 auto; }
+#profile { max-width: 440px; margin-top: 12px; background: #000; border: 1px solid var(--line); border-radius: 6px; }
+.plot { display: block; width: 100%; height: clamp(220px, 32vh, 440px); background: #000; border: 1px solid var(--line); border-radius: 6px; }
 .legend { display: flex; gap: 18px; flex-wrap: wrap; font: 14px var(--mono); margin-top: 8px; color: var(--muted); }
 .legend b { font-weight: 600; }
 .chans { display: flex; gap: 14px; margin-top: 12px; flex-wrap: wrap; }
@@ -69,5 +72,5 @@ svg { display: block; width: 100%; height: auto; }
 .dial-head { fill: var(--accent); }
 .dial-person { fill: #1d2421; stroke: var(--muted); stroke-width: 1.2; }
 
-@media (min-width: 1100px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1000px) { .grid { grid-template-columns: 1fr 1fr; } }   /* controls left, plots right */
 @media (max-width: 700px) { .topbar { padding: 10px 12px; } .grid { padding: 12px; } }

@@ -1,8 +1,9 @@
 # Status
 
-Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.4.0).
+Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.5.0).
 
 ## Done
+- **Two live plots, new layout (2026-11-02, U7):** left half Direction + Perturbation, right half **Rope force** (tower sensors, Record button) above **Ground force** (GRAIL plates via Vicon: address field + Connect, live Fz per plate, recording note "● Recording … until Release or STOP", Download CSV after); Board settings full width at the bottom; one column below 1000 px. The WebSocket stays open without a board (Vicon alone works). Checked in Chrome against `--board sim --vicon sim`. Not yet run against real Vicon.
 - **Test UI (2026-10-30, U6):** `/ui/` = test page: angle dial, perturbation (force + timing), board settings, full-width live plot; Record → Stop downloads the force CSV, note links force + events CSV (`GET /log/file`, server D27). Gait-phase card and `gait.js` removed. Checked in Chrome against the simulator (record, arm, perturb, plot). Next: new UI from the 2026-10-29 meeting parameters.
 - **Perturbation amplitude limit shown (2026-10-27):** next to Amplitude: `max = fmax_n − baseline_n` from `GET /params`; Perturb now refuses a larger amplitude with a message naming Max force (before: the board rejected it and nothing pulled). Lab setting now fmax_n 196 N (20 kg), fault_n 200 N.
 - **Zero, defaults, recording (2026-10-12, BumpemServer D20/D21, U5):** production page: Feedforward gain (kff) field; **Zero sensors** (DISARMED/ESTOP: 2 s mean of each enabled module → `offset_*` via `PATCH /params`, refused beyond ±20 N); **Save as default** (`POST /settings`, note shows what is saved / pending / refused); **Record** with label (`POST /log/start|stop`, live row count, file path when stopped). Checked in Chrome against the simulator.

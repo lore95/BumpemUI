@@ -36,3 +36,8 @@ Follows BumpemServer D26 (`POST /test/pull` `force_n` ≤ 150).
 Decision: `/ui/` (production mode) keeps Direction (angle), Perturbation (force + timing), Board settings; the gait-phase card and `gait.js` are removed (in git history, commit e6da8f6 and earlier); the live plot spans the full width (55 % of the window height, time axis in s); Stop recording downloads the force CSV (`GET /log/file`, BumpemServer D27), with links to both CSVs in the note. The testing page (`--testing`, open-loop pull per motor) is unchanged.
 Reason: lab meeting 2026-10-29: test pulls by force and angle, big live graph, record with CSV export; the next UI will be built from the parameters defined there.
 Alternatives: keep the gait picker disabled on the page (clutter until PTO exists).
+
+## U7 — 2026-11-02 — Two stacked live plots, settings at the bottom
+Decision: two columns from 1000 px: controls (Direction, Perturbation) left, plots right (rope force above ground force, each `clamp(220px, 32vh, 440px)` high); Board settings full width at the bottom. The ground plot shows the server's `vicon` stream (BumpemServer D32); no Vicon record button: the server records while armed. The Vicon address is remembered in the browser (localStorage), the server's `--vicon` value fills it otherwise.
+Reason: user (2026-11-02): directions and perturbation in half the screen, the two live plots on top of each other in the other half, board settings at the far bottom.
+Alternatives: plots side by side (too narrow for 10 s); tabs (one plot hidden).

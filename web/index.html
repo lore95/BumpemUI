@@ -26,33 +26,57 @@
 <p id="mode-warning" class="stop-note" hidden></p>
 
 <main class="grid">
-  <section class="card" aria-labelledby="h-dir">
-    <h2 id="h-dir">Direction</h2>
-    <svg id="dial" viewBox="-40 0 420 340" role="img" aria-label="Pull direction dial, seen from above; front is up"></svg>
-    <div class="row">
-      <label>Angle <input id="angle" type="number" step="1" value="180"> °</label>
-      <span id="angle-note" class="muted"></span>
-    </div>
-    <p class="muted small">Seen from above, subject facing up. 0° front, +90° left, −90° right, 180° back. Grey: no mounted module can pull that way.</p>
-  </section>
+  <div class="col">
+    <section class="card" aria-labelledby="h-dir">
+      <h2 id="h-dir">Direction</h2>
+      <svg id="dial" viewBox="-40 0 420 340" role="img" aria-label="Pull direction dial, seen from above; front is up"></svg>
+      <div class="row">
+        <label>Angle <input id="angle" type="number" step="1" value="180"> °</label>
+        <span id="angle-note" class="muted"></span>
+      </div>
+      <p class="muted small">Seen from above, subject facing up. 0° front, +90° left, −90° right, 180° back. Grey: no mounted module can pull that way.</p>
+    </section>
 
-  <section class="card" aria-labelledby="h-pert">
-    <h2 id="h-pert">Perturbation</h2>
-    <div class="fields">
-      <label>Amplitude <span class="u">N above baseline, <span id="amp-max">max ?</span></span><input id="amplitude_n" type="number" step="0.5" min="0" value="10"></label>
-      <label>Phase 1 (ramp up) <span class="u">ms</span><input id="phase1_ms" type="number" step="1" min="0" value="50"></label>
-      <label>Duration <span class="u">ms, start → end incl. ramps</span><input id="dur_ms" type="number" step="1" min="1" value="400"></label>
-      <label>Phase 2 (ramp down) <span class="u">ms</span><input id="phase2_ms" type="number" step="1" min="0" value="50"></label>
-      <label>Delay <span class="u">ms, board-side</span><input id="delay_ms" type="number" step="1" min="0" value="0"></label>
-    </div>
-    <svg id="profile" viewBox="0 0 360 90" role="img" aria-label="Force profile preview"></svg>
-    <div class="row">
-      <button id="btn-perturb" class="primary">Perturb now</button>
-    </div>
-    <p id="pert-result" class="muted small"></p>
-  </section>
-
-  <section class="card" aria-labelledby="h-board">
+    <section class="card" aria-labelledby="h-pert">
+      <h2 id="h-pert">Perturbation</h2>
+      <div class="fields">
+        <label>Amplitude <span class="u">N above baseline, <span id="amp-max">max ?</span></span><input id="amplitude_n" type="number" step="0.5" min="0" value="10"></label>
+        <label>Phase 1 (ramp up) <span class="u">ms</span><input id="phase1_ms" type="number" step="1" min="0" value="50"></label>
+        <label>Duration <span class="u">ms, start → end incl. ramps</span><input id="dur_ms" type="number" step="1" min="1" value="400"></label>
+        <label>Phase 2 (ramp down) <span class="u">ms</span><input id="phase2_ms" type="number" step="1" min="0" value="50"></label>
+        <label>Delay <span class="u">ms, board-side</span><input id="delay_ms" type="number" step="1" min="0" value="0"></label>
+      </div>
+      <svg id="profile" viewBox="0 0 360 90" role="img" aria-label="Force profile preview"></svg>
+      <div class="row">
+        <button id="btn-perturb" class="primary">Perturb now</button>
+      </div>
+      <p id="pert-result" class="muted small"></p>
+    </section>
+  </div>
+  <div class="col">
+    <section class="card" aria-labelledby="h-live">
+      <h2 id="h-live">Rope force <span class="muted">(tower sensors)</span></h2>
+      <canvas id="plot" class="plot" aria-label="Measured (solid) and target (dashed) force per module, last 10 s"></canvas>
+      <div id="legend" class="legend"></div>
+      <div class="row">
+        <label>Label <input id="log-label" type="text" maxlength="40" placeholder="pull_A_50N" pattern="[A-Za-z0-9_-]*"></label>
+        <button id="btn-record" title="Records every telemetry line (full board rate) and the pulses sent; Stop downloads the force CSV">Record</button>
+      </div>
+      <p id="log-note" class="muted small"></p>
+    </section>
+    <section class="card" aria-labelledby="h-vicon">
+      <h2 id="h-vicon">Ground force <span class="muted">(GRAIL plates, Vicon)</span></h2>
+      <canvas id="vplot" class="plot" aria-label="Vertical force per treadmill plate, last 10 s"></canvas>
+      <div id="vlegend" class="legend"></div>
+      <div class="row">
+        <label>Vicon <input id="vicon-host" type="text" size="18" placeholder="192.168.1.60:801" spellcheck="false"></label>
+        <button id="btn-vicon">Connect</button>
+        <span id="vicon-state" class="pill">not connected</span>
+      </div>
+      <p id="vicon-note" class="muted small">Records automatically from Arm until Release or STOP.</p>
+    </section>
+  </div>
+  <section class="card wide" aria-labelledby="h-board">
     <h2 id="h-board">Board settings</h2>
     <div class="fields">
       <label>Baseline <span class="u">N</span><input id="p-baseline_n" type="number" step="0.5" min="0"></label>
@@ -67,17 +91,6 @@
     </div>
     <p id="settings-note" class="muted small"></p>
     <p class="muted small">Channels can only be switched while DISARMED or stopped (ESTOP). A Teensy replug resets the board to firmware values; saved defaults are written back at connect.</p>
-  </section>
-
-  <section class="card wide" aria-labelledby="h-live">
-    <h2 id="h-live">Live force</h2>
-    <canvas id="plot" aria-label="Measured (solid) and target (dashed) force per module, last 10 s"></canvas>
-    <div id="legend" class="legend"></div>
-    <div class="row">
-      <label>Label <input id="log-label" type="text" maxlength="40" placeholder="pull_A_50N" pattern="[A-Za-z0-9_-]*"></label>
-      <button id="btn-record" title="Records every telemetry line (full board rate) and the pulses sent; Stop downloads the force CSV">Record</button>
-    </div>
-    <p id="log-note" class="muted small"></p>
   </section>
 </main>
 

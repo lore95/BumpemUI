@@ -3,7 +3,7 @@
 const API = "/api/v1";
 const MODS = ["A", "B", "C", "D"];
 const $ = (id) => document.getElementById(id);
-const S = { connected: false, state: null, geometry: null, params: null, angle: 180, ws: null, hist: [], recording: false, logTimer: null };
+const S = { connected: false, state: null, geometry: null, params: null, angle: 180, ws: null, hist: [], recording: false, logTimer: null, vhist: [], vicon: null };
 
 // ---------------------------------------------------------------- API
 async function api(method, path, body) {
@@ -40,7 +40,7 @@ async function setConnected(info) {
   $("conn-state").textContent = S.connected ? `${info.port} · fw ${info.board ? info.board.fw : "?"}` : "not connected";
   $("conn-state").classList.toggle("ok", S.connected);
   $("btn-connect").textContent = S.connected ? "Disconnect" : "Connect";
-  if (S.connected) { await refresh(); openStream(); } else { closeStream(); S.state = null; S.geometry = null; S.params = null; drawDial(); }
+  if (S.connected) await refresh(); else { S.state = null; S.geometry = null; S.params = null; S.hist = []; drawDial(); renderLegend(); }
   updateButtons();
 }
 async function refresh() {
@@ -52,7 +52,7 @@ async function refresh() {
   loadSettings(); loadLog();
 }
 
-// ---------------------------------------------------------------- live stream
+// ---------------------------------------------------------------- live stream (always open: Vicon works without a board)
 function openStream() {
   closeStream();
   const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}${API}/stream?telemetry_hz=30`);
@@ -64,11 +64,15 @@ function openStream() {
       S.hist.push(m);
       const cut = m.t_ms - 10000;
       while (S.hist.length && (S.hist[0].t_ms < cut || S.hist[0].t_ms > m.t_ms)) S.hist.shift();
+    } else if (m.type === "vicon") {
+      S.vhist.push(m);
+      const cut = m.host_s - 10;
+      while (S.vhist.length && (S.vhist[0].host_s < cut || S.vhist[0].host_s > m.host_s)) S.vhist.shift();
     } else if (m.type === "event" && m.kind === "STATE") {
       setState(m.args[0]);
     }
   };
-  ws.onclose = () => { if (S.ws === ws && S.connected) setTimeout(openStream, 1000); };
+  ws.onclose = () => { if (S.ws === ws) setTimeout(openStream, 1000); };
 }
 function closeStream() { if (S.ws) { const w = S.ws; S.ws = null; w.close(); } }
 function setState(st) {
@@ -242,38 +246,70 @@ function renderLegend() {
   $("legend").innerHTML = on.map((m) => `<span><b style="color:var(--ch-${m})">■ ${m}</b> <span id="lv-${m}">—</span></span>`).join("") +
     '<span>solid measured · dashed target</span>';
 }
-function drawPlot() {
-  const c = $("plot"), g = c.getContext("2d"), dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+function fitCanvas(c) {   // draw in CSS pixels, sharp on any screen size
+  const g = c.getContext("2d"), dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
   if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);   // draw in CSS pixels, sharp on any screen size
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+  return [g, W, H];
+}
+function axes(g, W, H, lo, hi, left) {   // 5 force gridlines (lo..hi N), time axis -10 s .. now; returns the y mapping
+  const Y = (f) => H - 22 - (H - 44) * (f - lo) / (hi - lo);
+  g.strokeStyle = "#1a201d"; g.fillStyle = "#8b9690"; g.font = "13px monospace"; g.lineWidth = 1; g.setLineDash([]);
+  for (let i = 0; i <= 5; i++) {
+    const f = lo + (hi - lo) * i / 5, y = Y(f);
+    g.beginPath(); g.moveTo(left, y); g.lineTo(W, y); g.stroke(); g.fillText(f.toFixed(0), 4, y + 4);
+  }
+  for (let s = 0; s <= 10; s += 2) { const x = left + (W - left - 4) * (1 - s / 10); g.fillText(s ? `-${s} s` : "now", x - (s ? 14 : 28), H - 4); }
+  g.fillText("N", 4, 14);
+  return Y;
+}
+const color = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function drawRope() {
+  const [g, W, H] = fitCanvas($("plot")), L = 44;
   const h = S.hist, on = MODS.filter((m) => !S.params || S.params[`ch_${m}`] >= 1);
   let fmax = 20;
   for (const s of h) for (const m of on) fmax = Math.max(fmax, s.target[m] || 0, s.measured[m] || 0);
   fmax = Math.ceil(fmax * 1.15 / 10) * 10;
-  g.strokeStyle = "#1a201d"; g.fillStyle = "#8b9690"; g.font = "13px monospace"; g.lineWidth = 1;
-  for (let f = 0; f <= fmax; f += fmax / 5) {
-    const y = H - 22 - (H - 44) * f / fmax; g.beginPath(); g.moveTo(44, y); g.lineTo(W, y); g.stroke(); g.fillText(f.toFixed(0), 4, y + 4);
-  }
-  for (let s = 0; s <= 10; s += 2) { const x = 44 + (W - 48) * (1 - s / 10); g.fillText(s ? `-${s} s` : "now", x - (s ? 14 : 28), H - 4); }
-  g.fillText("N", 4, 14);
-  if (h.length > 1) {
-    const t1 = h[h.length - 1].t_ms, X = (t) => 44 + (W - 48) * (1 - (t1 - t) / 10000), Y = (f) => H - 22 - (H - 44) * f / fmax;
-    for (const m of on) {
-      const col = getComputedStyle(document.documentElement).getPropertyValue(`--ch-${m}`).trim();
-      for (const [key, dash] of [["target", [5, 4]], ["measured", []]]) {
-        g.strokeStyle = col; g.setLineDash(dash); g.lineWidth = key === "measured" ? 2.2 : 1.4; g.beginPath();
-        h.forEach((s, i) => { const x = X(s.t_ms), y = Y(s[key][m] || 0); i ? g.lineTo(x, y) : g.moveTo(x, y); });
-        g.stroke();
-      }
-      g.setLineDash([]);
-      const last = h[h.length - 1], lv = $(`lv-${m}`);
-      if (lv) {
-        const meas = last.measured[m] || 0, dz = S.zero && S.state !== "DISARMED" ? ` (Δ ${(meas - (S.zero[m] || 0)).toFixed(1)})` : "";
-        lv.textContent = `${meas.toFixed(1)}${dz} / ${(last.target[m] || 0).toFixed(1)} N`;
-      }
+  const Y = axes(g, W, H, 0, fmax, L);
+  if (h.length < 2) return;
+  const t1 = h[h.length - 1].t_ms, X = (t) => L + (W - L - 4) * (1 - (t1 - t) / 10000);
+  for (const m of on) {
+    const col = color(`--ch-${m}`);
+    for (const [key, dash] of [["target", [5, 4]], ["measured", []]]) {
+      g.strokeStyle = col; g.setLineDash(dash); g.lineWidth = key === "measured" ? 2.2 : 1.4; g.beginPath();
+      h.forEach((s, i) => { const x = X(s.t_ms), y = Y(s[key][m] || 0); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+      g.stroke();
+    }
+    g.setLineDash([]);
+    const last = h[h.length - 1], lv = $(`lv-${m}`);
+    if (lv) {
+      const meas = last.measured[m] || 0, dz = S.zero && S.state !== "DISARMED" ? ` (Δ ${(meas - (S.zero[m] || 0)).toFixed(1)})` : "";
+      lv.textContent = `${meas.toFixed(1)}${dz} / ${(last.target[m] || 0).toFixed(1)} N`;
     }
   }
+}
+function drawGround() {
+  const [g, W, H] = fitCanvas($("vplot")), L = 52;
+  const h = S.vhist, plates = S.vicon ? S.vicon.plates : [];
+  let dmin = 0, dmax = 100;   // Fz as Vicon sends it: the sign depends on the plate axes
+  for (const s of h) for (const p of plates) { dmin = Math.min(dmin, s.fz[p] ?? 0); dmax = Math.max(dmax, s.fz[p] ?? 0); }
+  if (dmin > -0.05 * dmax) dmin = 0;   // noise around 0 N: keep 0 at the bottom
+  let step = Math.ceil((dmax - dmin) * 1.1 / 5 / 100) * 100, lo = Math.floor(dmin / step) * step;   // gridlines on whole 100 N
+  while (lo + 5 * step < dmax) step += 100;
+  const Y = axes(g, W, H, lo, lo + 5 * step, L);
+  if (h.length < 2) return;
+  const t1 = h[h.length - 1].host_s, X = (t) => L + (W - L - 4) * (1 - (t1 - t) / 10);
+  plates.forEach((p, k) => {
+    g.strokeStyle = color(`--plate-${k % 2}`); g.lineWidth = 2; g.beginPath();
+    h.forEach((s, i) => { const x = X(s.host_s), y = Y(s.fz[p] ?? 0); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    g.stroke();
+    const lv = $(`vv-${k}`);
+    if (lv) lv.textContent = `${(h[h.length - 1].fz[p] ?? 0).toFixed(0)} N`;
+  });
+}
+function drawPlot() {
+  drawRope(); drawGround();
   requestAnimationFrame(drawPlot);
 }
 
@@ -335,17 +371,57 @@ async function recordToggle() {
   } catch (e) { note("log-note", e.message, true); }
 }
 
+// ---------------------------------------------------------------- Vicon force plates (API.md "Vicon force plates")
+function showVicon(v) {
+  const plates = (S.vicon && S.vicon.plates || []).join();
+  S.vicon = v;
+  const host = $("vicon-host");
+  if (!host.value && document.activeElement !== host) host.value = v.host || v.default_host || localGet("viconHost") || "";
+  $("btn-vicon").textContent = v.connected ? "Disconnect" : "Connect";
+  $("vicon-state").textContent = v.connected ? `${v.host} · ${Math.round(v.rate_hz)} Hz` : "not connected";
+  $("vicon-state").classList.toggle("ok", v.connected);
+  $("vicon-note").classList.toggle("rec", !!v.recording && !v.message);
+  if (v.plates.join() !== plates)
+    $("vlegend").innerHTML = v.plates.map((p, k) => `<span><b style="color:var(--plate-${k % 2})">■ ${p}</b> <span id="vv-${k}">—</span></span>`).join("") +
+      (v.plates.length ? "<span>vertical force Fz</span>" : "");
+  const name = (v.file || "").split(/[\\/]/).pop();
+  if (v.message) note("vicon-note", v.message, true);
+  else if (v.recording) note("vicon-note", `\u25cf Recording ${name}: ${v.rows} rows, ${v.duration_s.toFixed(1)} s (until Release or STOP)`);
+  else if (v.file) {
+    note("vicon-note", `Last recording ${name}, on the server PC at ${v.file}. `);
+    const a = document.createElement("a"); a.href = `${API}/vicon/file`; a.download = ""; a.textContent = "Download CSV";
+    $("vicon-note").append(a);
+  } else note("vicon-note", v.connected ? "Records automatically from Arm until Release or STOP." : "Enter the Nexus PC address:port (or sim), then Connect.");
+}
+async function loadVicon() { try { showVicon(await api("GET", "/vicon")); } catch (e) { /* older server */ } }
+async function viconToggle() {
+  const btn = $("btn-vicon");
+  if (btn.disabled) return;
+  btn.disabled = true;
+  try {
+    if (S.vicon && S.vicon.connected) { showVicon(await api("POST", "/vicon/disconnect")); S.vhist = []; return; }
+    const host = $("vicon-host").value.trim();
+    note("vicon-note", `connecting to ${host}… (up to 5 s)`);
+    showVicon(await api("POST", "/vicon/connect", { host }));
+    localSet("viconHost", host);
+  } catch (e) { note("vicon-note", e.message, true); }
+  finally { btn.disabled = false; }
+}
+function localGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function localSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } }
+
 // ---------------------------------------------------------------- wiring
 function init() {
   $("btn-connect").onclick = connectToggle;
   $("btn-arm").onclick = arm; $("btn-clear").onclick = clearFault; $("btn-release").onclick = release; $("btn-stop").onclick = stop;
   $("btn-perturb").onclick = perturb; $("btn-apply").onclick = applyParams;
   $("btn-zero").onclick = zeroSensors; $("btn-save").onclick = saveDefaults; $("btn-record").onclick = recordToggle;
+  $("btn-vicon").onclick = viconToggle;
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); stop(); } });
   $("angle").addEventListener("change", () => setAngle(parseFloat($("angle").value) || 0, false));
   for (const k of ["amplitude_n", "phase1_ms", "dur_ms", "phase2_ms", "delay_ms"]) $(k).addEventListener("input", drawProfile);
   drawProfile(); drawDial(); renderLegend(); updateButtons(); requestAnimationFrame(drawPlot);
-  loadPorts();
+  loadPorts(); openStream(); loadVicon(); setInterval(loadVicon, 1000);
   api("GET", "/info").then((info) => {
     if (info.mode && info.mode !== "production") {
       const w = $("mode-warning"); w.hidden = false;
