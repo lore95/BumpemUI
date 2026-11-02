@@ -25,6 +25,8 @@ input[type=number] { width: 100%; font-family: var(--mono); }
   justify-content: space-between; padding: 12px 20px; background: rgba(5,6,6,.96); border-bottom: 1px solid var(--line); }
 .brand { font-weight: 700; font-size: 18px; letter-spacing: .02em; }
 .brand span { color: var(--muted); font-weight: 400; }
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand .logo { width: 30px; height: 30px; }
 .conn, .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .pill { font: 12px var(--mono); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; color: var(--muted); }
 .pill.ok { color: var(--accent); border-color: var(--accent); }
