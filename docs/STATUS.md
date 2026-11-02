@@ -3,6 +3,7 @@
 Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.5.0).
 
 ## Done
+- **Record next to Arm (2026-11-02, U8):** green Record once armed → blue Stop rec; records rope forces + pulses + Vicon (server D33); note shows rows and Vicon rows, links three CSVs after. Ground-force card no longer records by itself. Checked in Chrome against the simulator.
 - **Two live plots, new layout (2026-11-02, U7):** left half Direction + Perturbation, right half **Rope force** (tower sensors, Record button) above **Ground force** (GRAIL plates via Vicon: address field + Connect, live Fz per plate, recording note "● Recording … until Release or STOP", Download CSV after); Board settings full width at the bottom; one column below 1000 px. The WebSocket stays open without a board (Vicon alone works). Checked in Chrome against `--board sim --vicon sim`. Not yet run against real Vicon.
 - **Test UI (2026-10-30, U6):** `/ui/` = test page: angle dial, perturbation (force + timing), board settings, full-width live plot; Record → Stop downloads the force CSV, note links force + events CSV (`GET /log/file`, server D27). Gait-phase card and `gait.js` removed. Checked in Chrome against the simulator (record, arm, perturb, plot). Next: new UI from the 2026-10-29 meeting parameters.
 - **Perturbation amplitude limit shown (2026-10-27):** next to Amplitude: `max = fmax_n − baseline_n` from `GET /params`; Perturb now refuses a larger amplitude with a message naming Max force (before: the board rejected it and nothing pulled). Lab setting now fmax_n 196 N (20 kg), fault_n 200 N.

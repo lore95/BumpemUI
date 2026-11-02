@@ -18,6 +18,7 @@
   <div class="actions">
     <button id="btn-clear" class="warn" hidden title="Leave FAULT: back to ARMED (protocol CLEAR)">Clear fault</button>
     <button id="btn-arm">Arm</button>
+    <button id="btn-record" class="primary" title="Records rope forces (full board rate), pulses sent and the Vicon plates until Stop rec; enabled once armed">Record</button>
     <button id="btn-release" class="warn">Release…</button>
     <button id="btn-stop" class="stop" title="Emergency stop: drivers off now (key: Esc)">STOP <kbd>Esc</kbd></button>
   </div>
@@ -59,8 +60,8 @@
       <canvas id="plot" class="plot" aria-label="Measured (solid) and target (dashed) force per module, last 10 s"></canvas>
       <div id="legend" class="legend"></div>
       <div class="row">
-        <label>Label <input id="log-label" type="text" maxlength="40" placeholder="pull_A_50N" pattern="[A-Za-z0-9_-]*"></label>
-        <button id="btn-record" title="Records every telemetry line (full board rate) and the pulses sent; Stop downloads the force CSV">Record</button>
+        <label>Recording label <input id="log-label" type="text" maxlength="40" placeholder="pull_A_50N" pattern="[A-Za-z0-9_-]*"></label>
+        <span class="muted small">Record (top right) once armed</span>
       </div>
       <p id="log-note" class="muted small"></p>
     </section>
@@ -73,7 +74,7 @@
         <button id="btn-vicon">Connect</button>
         <span id="vicon-state" class="pill">not connected</span>
       </div>
-      <p id="vicon-note" class="muted small">Records automatically from Arm until Release or STOP.</p>
+      <p id="vicon-note" class="muted small"></p>
     </section>
   </div>
   <section class="card wide" aria-labelledby="h-board">

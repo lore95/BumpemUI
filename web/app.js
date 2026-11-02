@@ -91,8 +91,9 @@ function updateButtons() {
   $("btn-apply").disabled = !S.connected;
   const idle = S.connected && (S.state === "DISARMED" || S.state === "ESTOP");
   $("btn-zero").disabled = !idle; $("btn-save").disabled = !S.connected;
-  $("btn-record").disabled = !S.connected; $("btn-record").textContent = S.recording ? "Stop recording" : "Record";
-  $("btn-record").classList.toggle("stop", S.recording);
+  const rec = $("btn-record");   // green Record once armed; blue Stop rec while recording (also after Release / STOP)
+  rec.disabled = !(S.connected && (armed || S.recording)); rec.textContent = S.recording ? "Stop rec" : "Record";
+  rec.classList.toggle("primary", !S.recording); rec.classList.toggle("recording", S.recording);
   $("btn-clear").hidden = !(S.connected && S.state === "FAULT");
 }
 
@@ -344,13 +345,16 @@ async function saveDefaults() {
 function showLog(l) {
   S.recording = !!l.recording;
   const name = (l.file || "").split(/[\\/]/).pop();
-  note("log-note", l.recording ? `Recording ${name}: ${l.rows} rows, ${l.duration_s.toFixed(1)} s`
-    : l.file ? `Saved ${l.rows} rows (${l.duration_s.toFixed(1)} s), also on the server PC at ${l.file}. Download: ` : "");
+  const vic = l.vicon_file ? `, Vicon ${l.vicon_rows} rows` : ", no Vicon";
+  note("log-note", l.recording ? `\u25cf Recording ${name}: ${l.rows} rows, ${l.duration_s.toFixed(1)} s${vic}`
+    : l.file ? `Saved ${l.rows} rows (${l.duration_s.toFixed(1)} s)${vic}, also on the server PC at ${l.file}. Download: ` : "");
+  $("log-note").style.color = l.recording ? "var(--rec)" : "";
   if (!l.recording && l.file) {
-    for (const [kind, text] of [["force", "force CSV"], ["events", "events CSV (pulses sent)"]]) {
+    const kinds = [["force", "force CSV"], ["events", "events CSV (settings, pulses sent)"]].concat(l.vicon_file ? [["vicon", "Vicon CSV"]] : []);
+    kinds.forEach(([kind, text], i) => {
       const link = document.createElement("a"); link.href = `${API}/log/file?kind=${kind}`; link.download = ""; link.textContent = text;
-      $("log-note").append(kind === "events" ? " · " : "", link);
-    }
+      $("log-note").append(i ? " · " : "", link);
+    });
   }
   clearInterval(S.logTimer); S.logTimer = l.recording ? setInterval(loadLog, 1000) : null;
   updateButtons();
@@ -380,18 +384,11 @@ function showVicon(v) {
   $("btn-vicon").textContent = v.connected ? "Disconnect" : "Connect";
   $("vicon-state").textContent = v.connected ? `${v.host} · ${Math.round(v.rate_hz)} Hz` : "not connected";
   $("vicon-state").classList.toggle("ok", v.connected);
-  $("vicon-note").classList.toggle("rec", !!v.recording && !v.message);
   if (v.plates.join() !== plates)
     $("vlegend").innerHTML = v.plates.map((p, k) => `<span><b style="color:var(--plate-${k % 2})">■ ${p}</b> <span id="vv-${k}">—</span></span>`).join("") +
       (v.plates.length ? "<span>vertical force Fz</span>" : "");
-  const name = (v.file || "").split(/[\\/]/).pop();
   if (v.message) note("vicon-note", v.message, true);
-  else if (v.recording) note("vicon-note", `\u25cf Recording ${name}: ${v.rows} rows, ${v.duration_s.toFixed(1)} s (until Release or STOP)`);
-  else if (v.file) {
-    note("vicon-note", `Last recording ${name}, on the server PC at ${v.file}. `);
-    const a = document.createElement("a"); a.href = `${API}/vicon/file`; a.download = ""; a.textContent = "Download CSV";
-    $("vicon-note").append(a);
-  } else note("vicon-note", v.connected ? "Records automatically from Arm until Release or STOP." : "Enter the Nexus PC address:port (or sim), then Connect.");
+  else note("vicon-note", v.connected ? "Recorded together with the rope forces (Record, top right)." : "Enter the Nexus PC address:port (or sim), then Connect.");
 }
 async function loadVicon() { try { showVicon(await api("GET", "/vicon")); } catch (e) { /* older server */ } }
 async function viconToggle() {

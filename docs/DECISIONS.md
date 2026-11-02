@@ -41,3 +41,8 @@ Alternatives: keep the gait picker disabled on the page (clutter until PTO exist
 Decision: two columns from 1000 px: controls (Direction, Perturbation) left, plots right (rope force above ground force, each `clamp(220px, 32vh, 440px)` high); Board settings full width at the bottom. The ground plot shows the server's `vicon` stream (BumpemServer D32); no Vicon record button: the server records while armed. The Vicon address is remembered in the browser (localStorage), the server's `--vicon` value fills it otherwise.
 Reason: user (2026-11-02): directions and perturbation in half the screen, the two live plots on top of each other in the other half, board settings at the far bottom.
 Alternatives: plots side by side (too narrow for 10 s); tabs (one plot hidden).
+
+## U8 — 2026-11-02 — Record button next to Arm
+Decision: the Record button sits in the top bar after Arm: green "Record", enabled only while ARMED; while recording it is blue "Stop rec" and stays enabled in any state (after Release / STOP too). It records rope forces, pulses and Vicon together (BumpemServer D33). The label field and the status note stay in the Rope force card; after Stop rec the force CSV downloads, the note links force, events and Vicon CSVs.
+Reason: user (2026-11-02).
+Alternatives: Record in the plot card (out of sight while setting up a pull); allow Record while disarmed (user wants it after arming).
