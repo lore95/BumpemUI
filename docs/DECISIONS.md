@@ -46,3 +46,8 @@ Alternatives: plots side by side (too narrow for 10 s); tabs (one plot hidden).
 Decision: the Record button sits in the top bar after Arm: green "Record", enabled only while ARMED; while recording it is blue "Stop rec" and stays enabled in any state (after Release / STOP too). It records rope forces, pulses and Vicon together (BumpemServer D33). The label field and the status note stay in the Rope force card; after Stop rec the force CSV downloads, the note links force, events and Vicon CSVs.
 Reason: user (2026-11-02).
 Alternatives: Record in the plot card (out of sight while setting up a pull); allow Record while disarmed (user wants it after arming).
+
+## U9 — 2026-11-02 — Live plot at 20 Hz (median of 5 samples per point)
+Decision: the page opens the stream with `telemetry_hz=20`; the server sends the median of the board samples between messages (BumpemServer D39), so each point is the median of 5 samples (50 ms). Legend says so; recordings stay raw at 100 Hz.
+Reason: user (2026-11-02): rope force very noisy, spikes.
+Alternatives: 30 Hz (median of ~3: removes spikes, little smoothing); browser-side smoothing.

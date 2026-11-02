@@ -55,7 +55,7 @@ async function refresh() {
 // ---------------------------------------------------------------- live stream (always open: Vicon works without a board)
 function openStream() {
   closeStream();
-  const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}${API}/stream?telemetry_hz=30`);
+  const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}${API}/stream?telemetry_hz=20`);   // 20 Hz: each point = median of 5 board samples (server)
   S.ws = ws;
   ws.onmessage = (ev) => {
     const m = JSON.parse(ev.data);
@@ -245,7 +245,7 @@ function drawProfile() {
 function renderLegend() {
   const on = MODS.filter((m) => !S.params || S.params[`ch_${m}`] >= 1);
   $("legend").innerHTML = on.map((m) => `<span><b style="color:var(--ch-${m})">■ ${m}</b> <span id="lv-${m}">—</span></span>`).join("") +
-    '<span>solid measured · dashed target</span>';
+    '<span>solid measured (median of 5 samples, 50 ms) · dashed target · recording: raw 100 Hz</span>';
 }
 function fitCanvas(c) {   // draw in CSS pixels, sharp on any screen size
   const g = c.getContext("2d"), dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
