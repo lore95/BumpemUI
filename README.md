@@ -14,3 +14,5 @@ Use `--board /dev/cu.usbmodem169222501` for the Teensy. Open http://127.0.0.1:80
 **STOP**: red button or the **Esc** key, on every screen. STOP and Release drop rope tension: stop the treadmill first unless it is an emergency.
 
 Status: `docs/STATUS.md`.
+
+License: proprietary to IBMS, non-commercial academic use only. See `LICENSE`.
