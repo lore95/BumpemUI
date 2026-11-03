@@ -51,3 +51,8 @@ Alternatives: Record in the plot card (out of sight while setting up a pull); al
 Decision: the page opens the stream with `telemetry_hz=20`; the server sends the median of the board samples between messages (BumpemServer D39), so each point is the median of 5 samples (50 ms). Legend says so; recordings stay raw at 100 Hz.
 Reason: user (2026-11-02): rope force very noisy, spikes.
 Alternatives: 30 Hz (median of ~3: removes spikes, little smoothing); browser-side smoothing.
+
+## U10 — 2026-11-03 — Warning when the board does not run the saved defaults
+Decision: a line under the header lists every parameter where `GET /params` differs from `GET /settings` params (`kff 7.5 (saved 2)`), or says no defaults are saved; checked after connect, Apply, Zero and Save. On the stream event `RESTART` (server D41) the page reloads parameters and says "Board restarted: …".
+Reason: 2026-11-03 a perturbation test ran on firmware defaults without anyone seeing it (server D41).
+Alternatives: disable Arm on a mismatch (blocks deliberate unsaved tuning).

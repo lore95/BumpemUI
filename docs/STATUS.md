@@ -3,6 +3,7 @@
 Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.5.0).
 
 ## Done
+- **Defaults warning (2026-11-03, U10):** line under the header when the board's parameters differ from the saved defaults (or none are saved); "Board restarted: …" on the server's `RESTART` event. Checked in Chrome against the simulator.
 - **Logo (2026-11-02):** user's icon (treadmill seen from above, N/E/S/W ropes) as tab icon (`web/favicon.png`, 64 px) and header logo (`web/logo.png`, 128 px) on both pages; corners transparent. Source PNG in `../bumpemInstallation/`.
 - **Record next to Arm (2026-11-02, U8):** green Record once armed → blue Stop rec; records rope forces + pulses + Vicon (server D33); note shows rows and Vicon rows, links three CSVs after. Ground-force card no longer records by itself. Checked in Chrome against the simulator.
 - **Two live plots, new layout (2026-11-02, U7):** left half Direction + Perturbation, right half **Rope force** (tower sensors, Record button) above **Ground force** (GRAIL plates via Vicon: address field + Connect, live Fz per plate, recording note "● Recording … until Release or STOP", Download CSV after); Board settings full width at the bottom; one column below 1000 px. The WebSocket stays open without a board (Vicon alone works). Checked in Chrome against `--board sim --vicon sim`. Not yet run against real Vicon.

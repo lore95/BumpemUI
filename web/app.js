@@ -40,7 +40,7 @@ async function setConnected(info) {
   $("conn-state").textContent = S.connected ? `${info.port} · fw ${info.board ? info.board.fw : "?"}` : "not connected";
   $("conn-state").classList.toggle("ok", S.connected);
   $("btn-connect").textContent = S.connected ? "Disconnect" : "Connect";
-  if (S.connected) await refresh(); else { S.state = null; S.geometry = null; S.params = null; S.hist = []; drawDial(); renderLegend(); }
+  if (S.connected) await refresh(); else { S.state = null; S.geometry = null; S.params = null; S.hist = []; drawDial(); renderLegend(); checkDefaults(); }
   updateButtons();
 }
 async function refresh() {
@@ -70,6 +70,9 @@ function openStream() {
       while (S.vhist.length && (S.vhist[0].host_s < cut || S.vhist[0].host_s > m.host_s)) S.vhist.shift();
     } else if (m.type === "event" && m.kind === "STATE") {
       setState(m.args[0]);
+    } else if (m.type === "event" && m.kind === "RESTART") {   // server: board reset to firmware defaults, saved ones re-sent
+      note("params-note", `Board restarted: ${m.args[0]}.`, m.args[0] !== "settings applied");
+      refresh();
     }
   };
   ws.onclose = () => { if (S.ws === ws) setTimeout(openStream, 1000); };
@@ -327,16 +330,30 @@ async function zeroSensors() {   // DISARMED / ESTOP only: mean of the last 2 s 
     patch[`offset_${m}`] = off; shown.push(`${m} ${mean.toFixed(1)} N → 0`);
   }
   if (!shown.length) { note("params-note", "no enabled module"); return; }
-  try { S.params = await api("PATCH", "/params", patch); note("params-note", "zeroed: " + shown.join(", ") + ". Save as default to keep it."); }
+  try { S.params = await api("PATCH", "/params", patch); note("params-note", "zeroed: " + shown.join(", ") + ". Save as default to keep it."); checkDefaults(); }
   catch (e) { note("params-note", e.message, true); }
 }
 function showSettings(s) {
+  S.saved = s; checkDefaults();
   if (!s.file) { note("settings-note", "Saved defaults are switched off on this server."); return; }
   if (!s.params) { note("settings-note", "No saved defaults yet: the board runs on its current values."); return; }
   const when = (s.saved || "").replace("T", " ");
   note("settings-note", s.pending ? `Defaults from ${when} wait until the board is DISARMED.`
     : s.message ? `Defaults from ${when} applied, except ${s.message}` : `Defaults saved ${when}: kff ${s.params.kff}, baseline ${s.params.baseline_n} N, max ${s.params.fmax_n} N.`,
     !!s.message);
+}
+function checkDefaults() {   // board running other values than the saved defaults (2026-11-03: a test ran on kff 7.5)
+  const e = $("defaults-warning"), p = S.params, s = S.saved;
+  let text = "";
+  if (S.connected && p && s && s.file) {
+    if (!s.params) text = `No saved defaults on this PC: the board runs on firmware values (kff ${p.kff}, baseline ${p.baseline_n} N). Set them under Board settings, Apply, then Save as default.`;
+    else {
+      const diff = Object.entries(s.params).filter(([k, v]) => k in p && Math.abs(p[k] - v) > 1e-4 * Math.max(1, Math.abs(v)))
+        .map(([k, v]) => `${k} ${p[k]} (saved ${v})`);
+      if (diff.length) text = `Board differs from the saved defaults: ${diff.join(", ")}. Keep these: Save as default. Back to the saved ones: Disconnect, Connect.`;
+    }
+  }
+  e.textContent = text; e.hidden = !text;
 }
 async function loadSettings() { try { showSettings(await api("GET", "/settings")); } catch (e) { /* older server */ } }
 async function saveDefaults() {
