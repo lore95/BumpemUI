@@ -61,3 +61,7 @@ Alternatives: disable Arm on a mismatch (blocks deliberate unsaved tuning).
 Decision: `web/calibrate.html` + `calibrate.js` (link under Board settings): connect, sensor A–D, live raw value after tara (0.5 s mean), **Tara** and **Record weight** (2 s mean of every board sample, stream at `telemetry_hz=1000`; only while DISARMED/ESTOP), results per sensor (gain, worst error, notes: one weight only, outside 0.5–3), points table, **Download CSV** (`calibration_<stamp>.csv`, columns in server D42), Delete last, Clear all (two clicks). Raw = (measured − offset) / gain with the board's current values. Rows kept in the browser (localStorage) across reloads. A point is refused when the sensor shows < 15 % of the weight (wrong sensor selected). STOP + Esc as on every page.
 Reason: user (2026-11-03): weights hung on each sensor, tara for the hook, next weight / sensor, CSV for a config script on the lab PC (server D42).
 Alternatives: fit and PATCH gains in the page (no record; lab PC is not where the weights are hung).
+
+## U12 — 2026-11-03 — Calibration page: fit through the tara, refuse full-scale points (server D43)
+Decision: the page's gain is the same least-squares slope through the tara as `apply_calibration.py`; Record weight refuses a reading at full scale (≥ 99.5 % of `f_full`) and says to use a lighter weight; the hint names the usable range (~19 kg on A/C/D, ~40 kg on B).
+Reason: first calibration: 32 kg read 200.00 N (saturated) on A, C, D; the free fit was unreliable with 12/16 kg.

@@ -25,21 +25,13 @@ function raw(m, c) { const g = params[`gain_${c}`] || 1, o = params[`offset_${c}
 function tareOf(c) { for (let i = rows.length - 1; i >= 0; i--) if (rows[i].sensor === c && rows[i].kind === "tare") return rows[i].raw_mean_n; return null; }
 
 // ---------------------------------------------------------------- fit (same as scripts/apply_calibration.py)
-function fit(c) {
-  const pts = rows.filter((r) => r.sensor === c && r.kind === "point");
+const saturated = (p) => p.raw_mean_n >= 0.995 * (p.f_full || 200);   // ADC full scale: the sensor reads no more
+function fit(c) {   // least squares through the tara (close weights make a free fit unreliable, server D42)
+  const pts = rows.filter((r) => r.sensor === c && r.kind === "point" && !saturated(r));
   if (!pts.length) return null;
-  const x = pts.map((p) => p.raw_mean_n), y = pts.map((p) => p.mass_kg * G);
-  let gain, icpt;
-  if (new Set(pts.map((p) => p.mass_kg)).size >= 2) {        // slope with intercept: the tara does not matter
-    const mx = x.reduce((a, b) => a + b) / x.length, my = y.reduce((a, b) => a + b) / y.length;
-    let sxy = 0, sxx = 0;
-    x.forEach((xi, i) => { sxy += (xi - mx) * (y[i] - my); sxx += (xi - mx) ** 2; });
-    gain = sxy / sxx; icpt = my - gain * mx;
-  } else {                                                    // one weight: through the tara
-    const net = pts.map((p) => p.raw_mean_n - p.tare_n);
-    gain = y.reduce((a, b) => a + b) / net.reduce((a, b) => a + b); icpt = -gain * pts[0].tare_n;
-  }
-  const worst = Math.max(...x.map((xi, i) => Math.abs(gain * xi + icpt - y[i])));
+  const net = pts.map((p) => p.raw_mean_n - p.tare_n), y = pts.map((p) => p.mass_kg * G);
+  const gain = net.reduce((a, x, i) => a + x * y[i], 0) / net.reduce((a, x) => a + x * x, 0);
+  const worst = Math.max(...net.map((x, i) => Math.abs(gain * x - y[i])));
   return { n: pts.length, gain, worst, one: new Set(pts.map((p) => p.mass_kg)).size < 2 };
 }
 
@@ -95,6 +87,8 @@ async function average(kind) {
     if (v.length < 50) throw new Error(`only ${v.length} readings in 2 s: connection?`);
     if (state !== "DISARMED" && state !== "ESTOP") throw new Error(`board became ${state}: discarded`);
     const mean = v.reduce((a, b) => a + b) / v.length, sd = Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / v.length);
+    if (mean >= 0.995 * params.f_full)
+      throw new Error(`${c} is at full scale (${params.f_full} N raw): the sensor cannot read this weight. Use a lighter one.`);
     if (kind === "point" && mean - tareOf(c) < 0.15 * mass * G)   // even a 200 kg cell at gain 1 shows ~1/3 of the force
       throw new Error(`${c} shows only ${(mean - tareOf(c)).toFixed(1)} N for ${mass} kg: weight on sensor ${c}? Point not recorded.`);
     rows.push({ time: new Date().toISOString(), sensor: c, kind, mass_kg: kind === "point" ? mass : 0, raw_mean_n: mean, raw_sd_n: sd,
