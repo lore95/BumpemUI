@@ -15,4 +15,4 @@ Use `--board /dev/cu.usbmodem169222501` for the Teensy. Open http://127.0.0.1:80
 
 Status: `docs/STATUS.md`.
 
-License: proprietary to IBMS, non-commercial academic use only. See `LICENSE`.
+License: proprietary to IBMS (Institute for Advanced Biomechanics and Motion Studies, Hochschule Offenburg), non-commercial academic use only. See `LICENSE`.

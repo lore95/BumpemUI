@@ -1,6 +1,8 @@
 IBMS Bump'em perturbation system — Proprietary License, Non-Commercial
 
-Copyright (c) 2026 IBMS. All rights reserved.
+Copyright (c) 2026 IBMS - Institute for Advanced Biomechanics and Motion Studies,
+Hochschule für Technik, Wirtschaft und Medien Offenburg (Offenburg University
+of Applied Sciences). All rights reserved.
 
 This repository (software, firmware, hardware designs, documentation and data,
 together "the Material") is proprietary to IBMS. It is published for
@@ -29,4 +31,6 @@ not an open-source license.
    applicable regulations. IBMS is not liable for any damage, injury or loss
    arising from use of the Material.
 
-For permission for any use not covered above, contact IBMS.
+For permission for any use not covered above, contact IBMS:
+Hochschule Offenburg, Badstr. 24, 77652 Offenburg, Germany
+research.amlo@hs-offenburg.de · https://www.hs-offenburg.de/forschung/institute/ibms
