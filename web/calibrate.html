@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bump'em Sensor Calibration</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><img class="logo" src="logo.png" alt="">Bump'em <span>sensor calibration</span></div>
+  <div class="conn">
+    <select id="port" aria-label="Board port"><option value="sim">simulator</option></select>
+    <button id="btn-connect">Connect</button>
+    <span id="conn-state" class="pill">not connected</span>
+    <span id="board-state" class="pill state">—</span>
+  </div>
+  <div class="actions">
+    <button id="btn-stop" class="stop" title="Drivers off now (key: Esc)">STOP <kbd>Esc</kbd></button>
+  </div>
+</header>
+<p class="stop-note">STOP drops rope tension: stop the treadmill first, unless it is an emergency.</p>
+
+<main class="grid">
+  <section class="card wide" aria-labelledby="h-cal">
+    <h2 id="h-cal">Weights on each sensor</h2>
+    <p class="small warn-text">Board DISARMED (48 V off is best) · weight hanging straight down from the sensor · nothing touching it.</p>
+    <div class="row" id="sensors"></div>
+    <p class="cal-live"><span id="live">—</span></p>
+    <div class="row">
+      <button id="btn-tare" title="2 s average with only the hook / strap / rope piece hanging: that reading becomes 0">Tara</button>
+      <span id="tare" class="muted small">no tara yet</span>
+    </div>
+    <div class="row">
+      <label>Weight hung <input id="mass" type="number" min="0.1" max="100" step="0.1" value="2"> kg</label>
+      <button id="btn-point" class="primary" title="2 s average with the weight hanging still">Record weight</button>
+      <span id="point-note" class="muted small"></span>
+    </div>
+    <p class="muted small">Per sensor: Tara with the empty hook, then 3 or more different weights (e.g. 2, 5, 8 kg), each hanging still for the 2 s of averaging. Then pick the next sensor. Values are the sensor's raw reading (gain 1, offset 0), so the board's current settings do not matter.</p>
+  </section>
+
+  <section class="card wide" aria-labelledby="h-res">
+    <h2 id="h-res">Results</h2>
+    <table class="pulls">
+      <thead><tr><th>Sensor</th><th>Points</th><th>Gain</th><th>Worst error <span class="u">N</span></th><th>Note</th></tr></thead>
+      <tbody id="summary"></tbody>
+    </table>
+    <table class="pulls">
+      <thead><tr><th>Time</th><th>Sensor</th><th>Weight <span class="u">kg</span></th><th>Expected <span class="u">N</span></th><th>Net reading <span class="u">N</span></th><th>Ratio</th><th>Noise sd <span class="u">N</span></th><th></th></tr></thead>
+      <tbody id="points"></tbody>
+    </table>
+    <div class="row">
+      <button id="btn-csv" class="primary">Download CSV</button>
+      <button id="btn-undo">Delete last</button>
+      <button id="btn-clear" class="warn">Clear all</button>
+      <span id="csv-note" class="muted small"></span>
+    </div>
+    <p class="muted small">Gain = slope of expected force over raw reading (weight × 9.81). Firmware accepts gains 0.5–3. On the lab PC: put the CSV in the BumpemLab folder and double-click <b>apply_calibration.bat</b>; it writes the gains into the saved settings.</p>
+  </section>
+</main>
+
+<script src="calibrate.js"></script>
+</body>
+</html>

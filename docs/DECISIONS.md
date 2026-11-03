@@ -56,3 +56,8 @@ Alternatives: 30 Hz (median of ~3: removes spikes, little smoothing); browser-si
 Decision: a line under the header lists every parameter where `GET /params` differs from `GET /settings` params (`kff 7.5 (saved 2)`), or says no defaults are saved; checked after connect, Apply, Zero and Save. On the stream event `RESTART` (server D41) the page reloads parameters and says "Board restarted: …".
 Reason: 2026-11-03 a perturbation test ran on firmware defaults without anyone seeing it (server D41).
 Alternatives: disable Arm on a mismatch (blocks deliberate unsaved tuning).
+
+## U11 — 2026-11-03 — Sensor calibration page
+Decision: `web/calibrate.html` + `calibrate.js` (link under Board settings): connect, sensor A–D, live raw value after tara (0.5 s mean), **Tara** and **Record weight** (2 s mean of every board sample, stream at `telemetry_hz=1000`; only while DISARMED/ESTOP), results per sensor (gain, worst error, notes: one weight only, outside 0.5–3), points table, **Download CSV** (`calibration_<stamp>.csv`, columns in server D42), Delete last, Clear all (two clicks). Raw = (measured − offset) / gain with the board's current values. Rows kept in the browser (localStorage) across reloads. A point is refused when the sensor shows < 15 % of the weight (wrong sensor selected). STOP + Esc as on every page.
+Reason: user (2026-11-03): weights hung on each sensor, tara for the hook, next weight / sensor, CSV for a config script on the lab PC (server D42).
+Alternatives: fit and PATCH gains in the page (no record; lab PC is not where the weights are hung).

@@ -3,6 +3,7 @@
 Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.5.0).
 
 ## Done
+- **Sensor calibration page (2026-11-03, U11):** `web/calibrate.html` → CSV for `apply_calibration.bat` (server D42). Checked on the real Teensy from the Mac (tara, record, CSV through the script). Link under Board settings.
 - **Defaults warning (2026-11-03, U10):** line under the header when the board's parameters differ from the saved defaults (or none are saved); "Board restarted: …" on the server's `RESTART` event. Checked in Chrome against the simulator.
 - **Logo (2026-11-02):** user's icon (treadmill seen from above, N/E/S/W ropes) as tab icon (`web/favicon.png`, 64 px) and header logo (`web/logo.png`, 128 px) on both pages; corners transparent. Source PNG in `../bumpemInstallation/`.
 - **Record next to Arm (2026-11-02, U8):** green Record once armed → blue Stop rec; records rope forces + pulses + Vicon (server D33); note shows rows and Vicon rows, links three CSVs after. Ground-force card no longer records by itself. Checked in Chrome against the simulator.
