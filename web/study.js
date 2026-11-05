@@ -133,7 +133,6 @@ async function loadStudy() {   // the protocol from BumpemSetUp.html → server
   finally { S.loading = false; }
 }
 async function refreshStudy() { try { showStudy(await api("GET", "/study")); } catch (e) { /* server down */ } }
-function nextIndex(st) { return st.state === "block_done" ? st.block : Math.max(0, (st.block || 1) - 1); }   // 0-based block Start runs
 function showStudy(st) {
   if (st.state !== "none" && st.done > S.done && S.vhist.length)   // a perturbation was sent: mark it on the ground plot
     S.marks.push({ t: S.vhist[S.vhist.length - 1].host_s, color: color("--accent"), text: "P" });
@@ -142,19 +141,28 @@ function showStudy(st) {
   const n = st.state === "none" ? (S.protocol ? S.protocol.blocks.length : 0) : st.blocks;
   $("block-no").textContent = st.state === "none" ? "–" : st.block; $("block-of").textContent = `/ ${n || "–"}`;
   $("subject").textContent = st.subject_id ? `· ${st.subject_id}` : "";
-  const p = S.protocol, i = st.state === "none" ? 0 : nextIndex(st), blk = st.state !== "none" && p ? p.blocks[i] : null;
+  if (st.state !== "none" && !S.protocol && !S.fetching) {   // opened on another browser / storage cleared: the server has it
+    S.fetching = true;
+    api("GET", "/study/protocol").then((pr) => { S.protocol = pr; renderBlocks(); }).catch(() => {}).finally(() => { S.fetching = false; });
+  }
+  const p = S.protocol, i = st.state === "none" ? 0 : st.next_block - 1;
   note("s-load", st.state === "none" ? (p ? "Protocol: connect Vicon (bottom right) to load it." : "No protocol: prepare one on the protocol page, then Start the study there.")
     : `Protocol loaded: ${st.blocks} blocks, left belt = ${st.plates.left}.`, st.state === "none");
-  $("gait-speed").textContent = blk ? blk.speed_ms : "–";
-  const g = st.gait, gOk = g && blk && Math.abs(g.speed_ms - blk.speed_ms) < 1e-6;
+  const speed = st.state === "none" ? null : st.next_speed_ms, g = st.gait, gOk = !!st.gait_ok;
+  $("gait-speed").textContent = speed ?? "–";
   const side = (k) => `${k} stride ${g[k].stride_ms} ms (sd ${g[k].sd_ms}, n ${g[k].n}), contact ${g[k].stance_ms} ms (sd ${g[k].stance_sd_ms}), ` +
     `threshold ${g[k].td_n} / ${g[k].fo_n} N (noise sd ${g[k].noise_sd_n ?? "?"} N)`;
   note("gait-note", st.state === "gait" ? `Recording the plates… ${g.until_s} s left` : g && g.left
     ? `Gait pattern at ${g.speed_ms} m/s, plates ${g.rate_hz} Hz. ${side("left")}. ${side("right")}.` +
-      (gOk ? "" : ` Block ${i + 1} runs at ${blk.speed_ms} m/s: record again.`) : "Needed before each new speed. Also sets each plate's contact threshold from its noise.", g && !gOk && st.state !== "gait");
-  const msg = { loaded: "", ready: "Ready: Start runs block 1.", running: "", stopped: "Block stopped", block_done: `Block ${st.block} done. Set the next speed, record the gait pattern if it changed, then start block ${st.block + 1}.`,
+      (gOk ? "" : " (block " + (i + 1) + " runs at " + speed + " m/s)") : "Needed before each new speed. Also sets each plate's contact threshold from its noise.");
+  const needGait = speed != null && !gOk && ["loaded", "ready", "stopped", "block_done"].includes(st.state);
+  const msg = { loaded: "", ready: "Ready: Start runs block 1.", running: "", stopped: "Block stopped", block_done: `Block ${st.block} done.`,
     finished: "All blocks done. Release (treadmill stopped first), then download the recording.", gait: "" }[st.state] || "";
-  note("study-note", [msg, st.message].filter(Boolean).join(": "), st.state === "stopped");
+  const todo = needGait ? `Next: set the treadmill to ${speed} m/s, then Record gait pattern (step 3) before block ${i + 1} can start.`
+    : st.state === "block_done" ? `Next: Start block ${st.block + 1}.` : "";
+  note("study-note", [[msg, st.message].filter(Boolean).join(": "), todo].filter(Boolean).join(" "), st.state === "stopped");
+  if (needGait) $("study-note").style.color = "var(--warn)";
+  $("btn-gait").classList.toggle("confirm", needGait);   // yellow: this is the next thing to press
   $("progress").innerHTML = st.state === "running" || st.state === "stopped"
     ? `<b>${st.done}</b> / ${st.total} perturbations · ${st.amplitude_n} N · step ${st.steps}` +
       (st.next_in_steps != null ? ` · next due in <b>${st.next_in_steps}</b> steps` : "") : "";
@@ -179,12 +187,11 @@ function updateButtons() {
   $("btn-release").disabled = !(S.connected && (armed || S.state === "FAULT"));
   $("btn-clear").hidden = !(S.connected && S.state === "FAULT");
   $("btn-gait").disabled = !(vic && ["loaded", "ready", "stopped", "block_done"].includes(st));
-  const s = $("btn-start"), blk = S.protocol && st !== "none" ? S.protocol.blocks[nextIndex(S.study)] : null;
-  const gaitOk = !blk || (S.study.gait && S.study.gait.speed_ms === blk.speed_ms);   // server checks it too
+  const s = $("btn-start"), gaitOk = !!S.study.gait_ok;   // server checks it too
   s.disabled = !(S.connected && armed && vic && gaitOk && ["ready", "stopped", "block_done"].includes(st));
   s.textContent = st === "stopped" ? `Resume block ${S.study.block}` : st === "block_done" ? `Start block ${S.study.block + 1}`
     : st === "finished" ? "Study finished" : S.study.block > 1 ? `Start block ${S.study.block}` : "Start the study";
-  s.title = !armed ? "Arm first" : !gaitOk ? `Record the gait pattern at ${blk.speed_ms} m/s first` : "";
+  s.title = !armed ? "Arm first" : !gaitOk && st !== "none" ? `Record the gait pattern at ${S.study.next_speed_ms} m/s first` : "";
   $("btn-pause").disabled = !["running", "gait"].includes(st);
   $("left-plate").disabled = ["running", "gait"].includes(st);
 }
