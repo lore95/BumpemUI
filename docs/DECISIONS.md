@@ -95,3 +95,7 @@ Reason: user (2026-11-05): "i cant go to phase 2" — Start block 2 was disabled
 ## U19 — 2026-11-05 — BumpemActivation: Record gait pattern disabled until armed
 Decision: Record gait pattern is enabled only while the board is ARMED (server D48); before that its tooltip and the next-step line say "Arm (step 2), then set the treadmill to X m/s and Record gait pattern (step 3)".
 Reason: user (2026-11-05).
+
+## U20 — 2026-11-05 — Connection alerts on every page; clock line and sync gate on BumpemActivation
+Decision: `web/alerts.js` (loaded by every page) polls `GET /sync` every 2 s and shows a red box under the header while the Teensy or Vicon target is not connected (with the server's reason; it retries every 5 s) or the server does not answer; it fires `bumpem-sync` for the page. BumpemActivation shows "Clocks on this PC: Teensy ±… ms, drift … ppm · Vicon ±… ms, … frames lost · in sync ✓" (or what is missing) under Start, and Start stays disabled until in sync (server D49 refuses too). Step 1 says the protocol loads as soon as Vicon is connected.
+Reason: user (2026-11-05): automatic connection to COM3 and Vicon, alert on connection errors, clocks synchronised at Start the study.

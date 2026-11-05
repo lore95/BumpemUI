@@ -99,3 +99,6 @@ svg { display: block; width: 100%; height: auto; }
 tr.cur td { background: var(--panel-2); }
 button.confirm { background: var(--warn); border-color: var(--warn); color: #1a1300; font-weight: 600; }   /* BumpemSetUp: block still to confirm */
 button.confirm:disabled { background: var(--panel-2); border-color: var(--line); color: var(--fg); font-weight: 400; }   /* confirmed or has errors */
+/* connection alerts, every page (U20) */
+.conn-alert { margin: 8px 20px 0; padding: 8px 12px; border: 1px solid var(--stop); border-radius: 6px; background: #2a0b0d; color: #fff; font-size: 14px; }
+.conn-alert div + div { margin-top: 4px; }

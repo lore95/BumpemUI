@@ -44,6 +44,7 @@
         <li><div class="row"><button id="btn-start" class="primary">Start the study</button><button id="btn-pause" class="warn">Stop perturbations</button>
           <label title="Plates → server → board → rope delay, subtracted from each pulse delay (to be measured; 0 until then)">System delay <input id="latency" type="number" min="0" max="1000" step="1" value="0"> ms</label></div></li>
       </ol>
+      <p id="sync-note" class="small muted">Clocks: waiting for data…</p>
       <p id="study-note" class="small"></p>
       <div id="progress" class="progress"></div>
     </section>
@@ -78,6 +79,7 @@
   </div>
 </main>
 
+<script src="alerts.js"></script>
 <script src="plots.js"></script>
 <script src="study.js"></script>
 </body>

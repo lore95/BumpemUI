@@ -148,7 +148,7 @@ function showStudy(st) {
     api("GET", "/study/protocol").then((pr) => { S.protocol = pr; renderBlocks(); }).catch(() => {}).finally(() => { S.fetching = false; });
   }
   const p = S.protocol, i = st.state === "none" ? 0 : st.next_block - 1;
-  note("s-load", st.state === "none" ? (p ? "Protocol: connect Vicon (bottom right) to load it." : "No protocol: prepare one on the protocol page, then Start the study there.")
+  note("s-load", st.state === "none" ? (p ? "Protocol: loads as soon as Vicon is connected." : "No protocol: prepare one on the protocol page, then Start the study there.")
     : `Protocol loaded: ${st.blocks} blocks, left belt = ${st.plates.left}.`, st.state === "none");
   const speed = st.state === "none" ? null : st.next_speed_ms, g = st.gait, gOk = !!st.gait_ok;
   $("gait-speed").textContent = speed ?? "–";
@@ -191,15 +191,30 @@ function updateButtons() {
   $("btn-clear").hidden = !(S.connected && S.state === "FAULT");
   $("btn-gait").disabled = !(vic && armed && ["loaded", "ready", "stopped", "block_done"].includes(st));   // server: ARMED only
   $("btn-gait").title = !armed ? "Arm first: the gait pattern is recorded with the rest" : "";
-  const s = $("btn-start"), gaitOk = !!S.study.gait_ok;   // server checks it too
-  s.disabled = !(S.connected && armed && vic && gaitOk && ["ready", "stopped", "block_done"].includes(st));
+  const s = $("btn-start"), gaitOk = !!S.study.gait_ok, inSync = !!(S.sync && S.sync.in_sync);   // server checks both too
+  s.disabled = !(S.connected && armed && vic && gaitOk && inSync && ["ready", "stopped", "block_done"].includes(st));
   s.textContent = st === "stopped" ? `Resume block ${S.study.block}` : st === "block_done" ? `Start block ${S.study.block + 1}`
     : st === "finished" ? "Study finished" : S.study.block > 1 ? `Start block ${S.study.block}` : "Start the study";
-  s.title = !armed ? "Arm first" : !gaitOk && st !== "none" ? `Record the gait pattern at ${S.study.next_speed_ms} m/s first` : "";
+  s.title = !armed ? "Arm first" : !gaitOk && st !== "none" ? `Record the gait pattern at ${S.study.next_speed_ms} m/s first`
+    : !inSync ? "Clocks not in sync (line above Start)" : "";
   $("btn-pause").disabled = !["running", "gait"].includes(st);
   $("left-plate").disabled = ["running", "gait"].includes(st);
 }
 async function study(path, body) { try { showStudy(await api("POST", "/study/" + path, body)); } catch (e) { note("study-note", e.message, true); } }
+
+// ---------------------------------------------------------------- clocks (API.md "Clocks and sync"; alerts.js polls)
+function showSync(s) {
+  S.sync = s;
+  const e = $("sync-note");
+  if (!s) { e.textContent = "Clocks: server not answering."; e.style.color = "var(--stop)"; updateButtons(); return; }
+  const c = (k, name) => { const x = s[k].clock; return x ? `${name} ±${x.jitter_ms} ms, drift ${x.drift_ppm} ppm` +
+    (k === "vicon" ? `, ${x.lost_frames} frames lost (60 s)` : "") : `${name} –`; };
+  const missing = ["board", "vicon"].filter((k) => !s[k].connected).map((k) => (k === "board" ? "Teensy" : "Vicon"));
+  e.textContent = missing.length ? `Clocks: waiting for ${missing.join(" and ")} (red line at the top).`
+    : `Clocks on this PC: ${c("board", "Teensy")} · ${c("vicon", "Vicon")} · ` + (s.in_sync ? "in sync ✓" : "not in sync: " + s.problems.join("; "));
+  e.style.color = s.in_sync ? "var(--accent)" : "var(--warn)";
+  updateButtons();
+}
 
 // ---------------------------------------------------------------- stream and plots
 function openStream() {
@@ -259,6 +274,7 @@ async function init() {
   $("btn-pause").onclick = () => study("stop");
   $("left-plate").onchange = () => { if (S.protocol && S.vicon && S.vicon.connected) loadStudy(); };   // new mapping: new gait pattern needed
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); stop(); } });
+  document.addEventListener("bumpem-sync", (e) => showSync(e.detail));
   renderLegend(); renderBlocks(); updateButtons(); requestAnimationFrame(draw);
   loadPorts(); openStream();
   try {
