@@ -87,3 +87,13 @@ svg { display: block; width: 100%; height: auto; }
 .fnote { font-size: 12px; min-height: 1.2em; }
 .bad { color: var(--stop); }
 .ok-text { color: var(--accent); }
+/* study page (U14) */
+.blockno { display: flex; align-items: baseline; gap: 6px; font-family: var(--mono); margin-right: 8px; }
+.blockno small { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.blockno b { font-size: 40px; line-height: 1; color: var(--accent); }
+.blockno span { font-size: 22px; color: var(--muted); }
+.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; }
+.steps .row { margin-top: 6px; }
+.progress { font: 16px var(--mono); margin-top: 8px; }
+.progress b { color: var(--accent); }
+tr.cur td { background: var(--panel-2); }

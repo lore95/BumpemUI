@@ -1,5 +1,6 @@
 // Study protocol page (U13): one subject (global) + any number of blocks, fields from protocol_schema.js.
-// CSV import / export, checks, Confirm per section. Browser only: reads GET /info and /params (max pulse force), sends only STOP.
+// CSV import / export, checks, Confirm per section. Reads GET /info and /params (max pulse force), sends only STOP;
+// Start the study hands the typed protocol to study.html (localStorage "bumpemStudy", U14).
 "use strict";
 const API = "/api/v1";
 const $ = (id) => document.getElementById(id);
@@ -87,6 +88,7 @@ function update() {   // notes, statuses, buttons; no re-render (keeps the curso
   r.textContent = !P.blocks.length ? "Add at least one block." : bad ? `${bad} section(s) with errors.` : todo ? `${todo} section(s) to confirm.`
     : `All ${P.blocks.length + 1} sections confirmed.`;
   r.className = "small " + (bad ? "bad" : todo || !P.blocks.length ? "warn-text" : "ok-text");
+  $("btn-start").disabled = !P.blocks.length || !!bad || !!todo;
   save();
 }
 
@@ -204,6 +206,23 @@ function addBlock() {
   const box = $("blocks"); box.scrollTop = box.scrollHeight;
   box.lastElementChild.querySelector("input, select").focus();
 }
+function typed() {   // API.md "Study" protocol: numbers as numbers, lists as arrays, unused and empty fields left out
+  const conv = (kind, v) => {
+    const o = {};
+    for (const f of SCHEMA[kind].fields) {
+      const s = String(v[f.key] ?? "").trim();
+      if (s === "" || !shown(f, v)) continue;
+      o[f.key] = f.type === "number" ? num(s) : f.type === "list" ? items(s).map(num) : s;
+    }
+    return o;
+  };
+  return { subject: conv("subject", P.subject.values), blocks: P.blocks.map((b) => conv("block", b.values)) };
+}
+function startStudy() {
+  try { localStorage.setItem("bumpemStudy", JSON.stringify({ protocol: typed(), source: P.source, schema: SCHEMA.version, fresh: true })); }
+  catch (e) { $("ready").textContent = "This browser blocks storage: the study page cannot get the protocol."; return; }
+  location.href = "study.html";
+}
 function stop() { fetch(API + "/estop", { method: "POST" }).catch(() => {}); }
 
 async function init() {
@@ -219,6 +238,7 @@ async function init() {
   $("btn-template").onclick = () => download("protocol_template.csv", csvText(template()));
   $("btn-new").onclick = (e) => { if (twice(e.target, "New", "Click again: clear all")) { P = empty(); $("file-note").textContent = ""; $("import-report").hidden = true; render(); } };
   $("btn-add").onclick = addBlock;
+  $("btn-start").onclick = startStudy;
   for (const id of ["subject", "blocks"]) { $(id).addEventListener("input", onInput); $(id).addEventListener("click", onAction); }
   $("blocks").addEventListener("toggle", (e) => { const b = P.blocks[+e.target.dataset.sec]; if (b) { b.closed = !e.target.open; save(); } }, true);
   render();

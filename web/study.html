@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bump'em Study</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><img class="logo" src="logo.png" alt="">Bump'em <span>study</span></div>
+  <div class="conn">
+    <select id="port" aria-label="Board port"><option value="sim">simulator</option></select>
+    <button id="btn-connect">Connect</button>
+    <span id="conn-state" class="pill">not connected</span>
+    <span id="board-state" class="pill state">—</span>
+  </div>
+  <div class="actions">
+    <div class="blockno" title="Current block / blocks"><small>block</small><b id="block-no">–</b><span id="block-of">/ –</span></div>
+    <button id="btn-clear" class="warn" hidden title="Leave FAULT: back to ARMED (protocol CLEAR)">Clear fault</button>
+    <button id="btn-arm" class="primary" title="Arms the board and starts recording rope forces, events and Vicon">Arm</button>
+    <button id="btn-release" class="warn">Release…</button>
+    <button id="btn-stop" class="stop" title="Emergency stop: drivers off now (key: Esc)">STOP <kbd>Esc</kbd></button>
+  </div>
+</header>
+<p class="stop-note">STOP and Release drop rope tension: stop the treadmill first, unless it is an emergency.</p>
+<p id="mode-warning" class="stop-note" hidden></p>
+
+<main class="grid">
+  <div class="col">
+    <section class="card" aria-labelledby="h-study">
+      <h2 id="h-study">Study <span class="muted" id="subject"></span></h2>
+      <ol class="steps">
+        <li><span id="s-load">Protocol</span></li>
+        <li>Arm (top right): recording starts. <span id="log-note" class="small"></span> <button id="btn-rec" class="recording" hidden>Stop rec</button></li>
+        <li>Treadmill at <b id="gait-speed">–</b> m/s, subject running steadily:
+          <div class="row">
+            <label>for <input id="gait-s" type="number" min="5" max="120" step="1" value="20"> s</label>
+            <button id="btn-gait">Record gait pattern</button>
+          </div>
+          <p id="gait-note" class="small muted"></p>
+        </li>
+        <li><div class="row"><button id="btn-start" class="primary">Start the study</button><button id="btn-pause" class="warn">Stop perturbations</button></div></li>
+      </ol>
+      <p id="study-note" class="small"></p>
+      <div id="progress" class="progress"></div>
+    </section>
+
+    <section class="card" aria-labelledby="h-blocks">
+      <h2 id="h-blocks">Blocks</h2>
+      <table class="pulls">
+        <thead><tr><th>#</th><th>Name</th><th>Speed <span class="u">m/s</span></th><th>Force <span class="u">N × n</span></th><th>Directions <span class="u">°</span></th><th>Phase <span class="u">% · foot</span></th><th>Timing</th><th>Status</th></tr></thead>
+        <tbody id="blocks"></tbody>
+      </table>
+      <p class="muted small"><a href="protocol.html">Back to the protocol</a> (edit, then Start the study again: replaces the loaded protocol unless a block runs).</p>
+    </section>
+  </div>
+  <div class="col">
+    <section class="card" aria-labelledby="h-live">
+      <h2 id="h-live">Rope force <span class="muted">(tower sensors)</span></h2>
+      <canvas id="plot" class="plot" aria-label="Measured (solid) and target (dashed) force per module, last 10 s"></canvas>
+      <div id="legend" class="legend"></div>
+    </section>
+    <section class="card" aria-labelledby="h-vicon">
+      <h2 id="h-vicon">Ground force <span class="muted">(GRAIL plates, Vicon)</span></h2>
+      <canvas id="vplot" class="plot" aria-label="Vertical force per treadmill plate, last 10 s, foot strikes and perturbations marked"></canvas>
+      <div id="vlegend" class="legend"></div>
+      <div class="row">
+        <label>Vicon <input id="vicon-host" type="text" size="18" placeholder="192.168.1.60:801" spellcheck="false"></label>
+        <button id="btn-vicon">Connect</button>
+        <span id="vicon-state" class="pill">not connected</span>
+        <label>Left belt <select id="left-plate"></select></label>
+      </div>
+      <p id="vicon-note" class="muted small"></p>
+    </section>
+  </div>
+</main>
+
+<script src="plots.js"></script>
+<script src="study.js"></script>
+</body>
+</html>

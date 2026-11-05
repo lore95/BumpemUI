@@ -250,42 +250,11 @@ function renderLegend() {
   $("legend").innerHTML = on.map((m) => `<span><b style="color:var(--ch-${m})">■ ${m}</b> <span id="lv-${m}">—</span></span>`).join("") +
     '<span>solid measured (median of 5 samples, 50 ms) · dashed target · recording: raw 100 Hz</span>';
 }
-function fitCanvas(c) {   // draw in CSS pixels, sharp on any screen size
-  const g = c.getContext("2d"), dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
-  if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
-  return [g, W, H];
-}
-function axes(g, W, H, lo, hi, left) {   // 5 force gridlines (lo..hi N), time axis -10 s .. now; returns the y mapping
-  const Y = (f) => H - 22 - (H - 44) * (f - lo) / (hi - lo);
-  g.strokeStyle = "#1a201d"; g.fillStyle = "#8b9690"; g.font = "13px monospace"; g.lineWidth = 1; g.setLineDash([]);
-  for (let i = 0; i <= 5; i++) {
-    const f = lo + (hi - lo) * i / 5, y = Y(f);
-    g.beginPath(); g.moveTo(left, y); g.lineTo(W, y); g.stroke(); g.fillText(f.toFixed(0), 4, y + 4);
-  }
-  for (let s = 0; s <= 10; s += 2) { const x = left + (W - left - 4) * (1 - s / 10); g.fillText(s ? `-${s} s` : "now", x - (s ? 14 : 28), H - 4); }
-  g.fillText("N", 4, 14);
-  return Y;
-}
-const color = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-function drawRope() {
-  const [g, W, H] = fitCanvas($("plot")), L = 44;
+function drawRope() {   // plot: plots.js
   const h = S.hist, on = MODS.filter((m) => !S.params || S.params[`ch_${m}`] >= 1);
-  let fmax = 20;
-  for (const s of h) for (const m of on) fmax = Math.max(fmax, s.target[m] || 0, s.measured[m] || 0);
-  fmax = Math.ceil(fmax * 1.15 / 10) * 10;
-  const Y = axes(g, W, H, 0, fmax, L);
+  drawRopePlot($("plot"), h, on);
   if (h.length < 2) return;
-  const t1 = h[h.length - 1].t_ms, X = (t) => L + (W - L - 4) * (1 - (t1 - t) / 10000);
   for (const m of on) {
-    const col = color(`--ch-${m}`);
-    for (const [key, dash] of [["target", [5, 4]], ["measured", []]]) {
-      g.strokeStyle = col; g.setLineDash(dash); g.lineWidth = key === "measured" ? 2.2 : 1.4; g.beginPath();
-      h.forEach((s, i) => { const x = X(s.t_ms), y = Y(s[key][m] || 0); i ? g.lineTo(x, y) : g.moveTo(x, y); });
-      g.stroke();
-    }
-    g.setLineDash([]);
     const last = h[h.length - 1], lv = $(`lv-${m}`);
     if (lv) {
       const meas = last.measured[m] || 0, dz = S.zero && S.state !== "DISARMED" ? ` (Δ ${(meas - (S.zero[m] || 0)).toFixed(1)})` : "";
@@ -294,23 +263,10 @@ function drawRope() {
   }
 }
 function drawGround() {
-  const [g, W, H] = fitCanvas($("vplot")), L = 52;
   const h = S.vhist, plates = S.vicon ? S.vicon.plates : [];
-  let dmin = 0, dmax = 100;   // Fz as Vicon sends it: the sign depends on the plate axes
-  for (const s of h) for (const p of plates) { dmin = Math.min(dmin, s.fz[p] ?? 0); dmax = Math.max(dmax, s.fz[p] ?? 0); }
-  if (dmin > -0.05 * dmax) dmin = 0;   // noise around 0 N: keep 0 at the bottom
-  let step = Math.ceil((dmax - dmin) * 1.1 / 5 / 100) * 100, lo = Math.floor(dmin / step) * step;   // gridlines on whole 100 N
-  while (lo + 5 * step < dmax) step += 100;
-  const Y = axes(g, W, H, lo, lo + 5 * step, L);
+  drawGroundPlot($("vplot"), h, plates);
   if (h.length < 2) return;
-  const t1 = h[h.length - 1].host_s, X = (t) => L + (W - L - 4) * (1 - (t1 - t) / 10);
-  plates.forEach((p, k) => {
-    g.strokeStyle = color(`--plate-${k % 2}`); g.lineWidth = 2; g.beginPath();
-    h.forEach((s, i) => { const x = X(s.host_s), y = Y(s.fz[p] ?? 0); i ? g.lineTo(x, y) : g.moveTo(x, y); });
-    g.stroke();
-    const lv = $(`vv-${k}`);
-    if (lv) lv.textContent = `${(h[h.length - 1].fz[p] ?? 0).toFixed(0)} N`;
-  });
+  plates.forEach((p, k) => { const lv = $(`vv-${k}`); if (lv) lv.textContent = `${(h[h.length - 1].fz[p] ?? 0).toFixed(0)} N`; });
 }
 function drawPlot() {
   drawRope(); drawGround();
