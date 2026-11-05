@@ -97,3 +97,5 @@ svg { display: block; width: 100%; height: auto; }
 .progress { font: 16px var(--mono); margin-top: 8px; }
 .progress b { color: var(--accent); }
 tr.cur td { background: var(--panel-2); }
+button.confirm { background: var(--warn); border-color: var(--warn); color: #1a1300; font-weight: 600; }   /* BumpemSetUp: block still to confirm */
+button.confirm:disabled { background: var(--panel-2); border-color: var(--line); color: var(--fg); font-weight: 400; }   /* confirmed or has errors */

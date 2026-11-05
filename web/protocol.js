@@ -56,7 +56,7 @@ function render() {
   $("blocks").innerHTML = P.blocks.map((b, i) =>
     `<details class="block" data-sec="${i}"${b.closed ? "" : " open"}><summary><b>${esc(SCHEMA.block.title)} ${i + 1}</b> ` +
     `<span id="sum-${i}" class="muted small"></span> <span id="st-${i}" class="small"></span></summary>` + fieldsHTML("block", i, b.values) +
-    `<div class="row"><button data-act="confirm" data-sec="${i}">Confirm block ${i + 1}</button><button data-act="dup" data-sec="${i}">Duplicate</button>` +
+    `<div class="row"><button data-act="confirm" data-sec="${i}" class="confirm">Confirm block ${i + 1}</button><button data-act="dup" data-sec="${i}">Duplicate</button>` +
     `<button data-act="up" data-sec="${i}" ${i ? "" : "disabled"} title="Move up">↑</button>` +
     `<button data-act="down" data-sec="${i}" ${i < P.blocks.length - 1 ? "" : "disabled"} title="Move down">↓</button>` +
     `<button data-act="del" data-sec="${i}" class="warn">Delete</button></div></details>`).join("") ||

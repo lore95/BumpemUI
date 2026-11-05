@@ -83,3 +83,7 @@ Reason: user (2026-11-05): gait detection as the SLAP script, threshold as low a
 ## U16 — 2026-11-05 — Pages renamed: BumpemSetUp (protocol), BumpemActivation (study)
 Decision: `web/protocol.html` → `web/BumpemSetUp.html`, `web/study.html` → `web/BumpemActivation.html`; page titles and header names follow. Scripts keep their names (`protocol.js`, `protocol_schema.js`, `study.js`). Old URLs are gone (no redirect).
 Reason: user (2026-11-05).
+
+## U17 — 2026-11-05 — BumpemSetUp: block Confirm button yellow
+Decision: "Confirm block n" is a filled yellow button (`button.confirm`, `--warn`) while the block can be confirmed; once confirmed or while it has errors (disabled) it looks like a normal button. Subject Confirm unchanged.
+Reason: user (2026-11-05).
