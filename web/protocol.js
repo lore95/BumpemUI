@@ -1,6 +1,6 @@
-// Study protocol page (U13): one subject (global) + any number of blocks, fields from protocol_schema.js.
+// BumpemSetUp page, study protocol (U13, U16): one subject (global) + any number of blocks, fields from protocol_schema.js.
 // CSV import / export, checks, Confirm per section. Reads GET /info and /params (max pulse force), sends only STOP;
-// Start the study hands the typed protocol to study.html (localStorage "bumpemStudy", U14).
+// Start the study hands the typed protocol to BumpemActivation.html (localStorage "bumpemStudy", U14).
 "use strict";
 const API = "/api/v1";
 const $ = (id) => document.getElementById(id);
@@ -221,7 +221,7 @@ function typed() {   // API.md "Study" protocol: numbers as numbers, lists as ar
 function startStudy() {
   try { localStorage.setItem("bumpemStudy", JSON.stringify({ protocol: typed(), source: P.source, schema: SCHEMA.version, fresh: true })); }
   catch (e) { $("ready").textContent = "This browser blocks storage: the study page cannot get the protocol."; return; }
-  location.href = "study.html";
+  location.href = "BumpemActivation.html";
 }
 function stop() { fetch(API + "/estop", { method: "POST" }).catch(() => {}); }
 

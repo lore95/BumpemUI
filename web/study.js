@@ -1,4 +1,4 @@
-// Study page (U14): runs the protocol from protocol.html on the server (API.md "Study"). Arm (+ recording), gait
+// BumpemActivation page (U14, U16): runs the protocol from BumpemSetUp.html on the server (API.md "Study"). Arm (+ recording), gait
 // pattern, blocks one after the other, live rope and ground force. The schedule runs on the server, not in this page.
 "use strict";
 const API = "/api/v1";
@@ -122,7 +122,7 @@ async function viconToggle() {
 }
 
 // ---------------------------------------------------------------- study (API.md "Study")
-async function loadStudy() {   // the protocol from protocol.html → server
+async function loadStudy() {   // the protocol from BumpemSetUp.html → server
   S.loading = true;
   try {
     showStudy(await api("POST", "/study", { ...S.protocol, plates: plateMap() }));

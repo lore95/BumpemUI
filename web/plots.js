@@ -1,5 +1,5 @@
 // Live force plots, last 10 s (U7): rope force per module (tower sensors), ground force per plate (Vicon).
-// Shared by index.html (app.js) and study.html (study.js).
+// Shared by index.html (app.js) and BumpemActivation.html (study.js).
 "use strict";
 function fitCanvas(c) {   // draw in CSS pixels, sharp on any screen size
   const g = c.getContext("2d"), dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;

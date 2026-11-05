@@ -79,3 +79,7 @@ Alternatives: run the schedule in the page (stops with the tab, timing through t
 ## U15 — 2026-11-05 — Study page: contact thresholds, stance phase, system delay (server D45)
 Decision: protocol block field **Phase of** (`gait_phase_of`: stance, default / cycle; 16 block fields); Gait phase example 60 % (the lab script's 60 % of contact); its note says what the % refers to. After the gait pattern the study page shows the plate rate and per side stride, contact time, the contact thresholds (touch-down / foot-off N) and the swing noise sd. **System delay** (ms, next to Start, remembered in the browser) goes to `POST /study/start` as `latency_ms`. Blocks table phase column: "60 % stance · left".
 Reason: user (2026-11-05): gait detection as the SLAP script, threshold as low as possible but stable, plates as close to 1000 Hz as possible.
+
+## U16 — 2026-11-05 — Pages renamed: BumpemSetUp (protocol), BumpemActivation (study)
+Decision: `web/protocol.html` → `web/BumpemSetUp.html`, `web/study.html` → `web/BumpemActivation.html`; page titles and header names follow. Scripts keep their names (`protocol.js`, `protocol_schema.js`, `study.js`). Old URLs are gone (no redirect).
+Reason: user (2026-11-05).
