@@ -91,3 +91,7 @@ Reason: user (2026-11-05).
 ## U18 — 2026-11-05 — BumpemActivation: the next step is said plainly
 Decision: when the next block needs a gait pattern at another speed, the note under Start says "Next: set the treadmill to X m/s, then Record gait pattern (step 3) before block n can start" in yellow and Record gait pattern turns yellow; the gait summary stays plain text (it was red, read as an error). Speed and readiness come from the server (`next_speed_ms`, `gait_ok`, server D46); the blocks table falls back to `GET /study/protocol` when this browser has no copy.
 Reason: user (2026-11-05): "i cant go to phase 2" — Start block 2 was disabled with only a red line at the end of the gait summary.
+
+## U19 — 2026-11-05 — BumpemActivation: Record gait pattern disabled until armed
+Decision: Record gait pattern is enabled only while the board is ARMED (server D48); before that its tooltip and the next-step line say "Arm (step 2), then set the treadmill to X m/s and Record gait pattern (step 3)".
+Reason: user (2026-11-05).

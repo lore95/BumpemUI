@@ -43,7 +43,9 @@ async function setConnected(info) {
   renderLegend(); renderBlocks(); updateButtons();
 }
 function setState(st) {
+  const was = S.state;
   S.state = st;
+  if (was !== st && S.study.state !== "none") showStudy(S.study);   // next-step hint depends on ARMED
   $("board-state").textContent = st || (S.connected ? "no data" : "—");
   $("board-state").className = `pill state ${st || ""}`;
   updateButtons();
@@ -158,7 +160,8 @@ function showStudy(st) {
   const needGait = speed != null && !gOk && ["loaded", "ready", "stopped", "block_done"].includes(st.state);
   const msg = { loaded: "", ready: "Ready: Start runs block 1.", running: "", stopped: "Block stopped", block_done: `Block ${st.block} done.`,
     finished: "All blocks done. Release (treadmill stopped first), then download the recording.", gait: "" }[st.state] || "";
-  const todo = needGait ? `Next: set the treadmill to ${speed} m/s, then Record gait pattern (step 3) before block ${i + 1} can start.`
+  const todo = needGait ? (S.state !== "ARMED" ? `Next: Arm (step 2), then set the treadmill to ${speed} m/s and Record gait pattern (step 3).`
+      : `Next: set the treadmill to ${speed} m/s, then Record gait pattern (step 3) before block ${i + 1} can start.`)
     : st.state === "block_done" ? `Next: Start block ${st.block + 1}.` : "";
   note("study-note", [[msg, st.message].filter(Boolean).join(": "), todo].filter(Boolean).join(" "), st.state === "stopped");
   if (needGait) $("study-note").style.color = "var(--warn)";
@@ -186,7 +189,8 @@ function updateButtons() {
   $("btn-arm").disabled = !(S.connected && (S.state === "DISARMED" || S.state === "ESTOP"));
   $("btn-release").disabled = !(S.connected && (armed || S.state === "FAULT"));
   $("btn-clear").hidden = !(S.connected && S.state === "FAULT");
-  $("btn-gait").disabled = !(vic && ["loaded", "ready", "stopped", "block_done"].includes(st));
+  $("btn-gait").disabled = !(vic && armed && ["loaded", "ready", "stopped", "block_done"].includes(st));   // server: ARMED only
+  $("btn-gait").title = !armed ? "Arm first: the gait pattern is recorded with the rest" : "";
   const s = $("btn-start"), gaitOk = !!S.study.gait_ok;   // server checks it too
   s.disabled = !(S.connected && armed && vic && gaitOk && ["ready", "stopped", "block_done"].includes(st));
   s.textContent = st === "stopped" ? `Resume block ${S.study.block}` : st === "block_done" ? `Start block ${S.study.block + 1}`
