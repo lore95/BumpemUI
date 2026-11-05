@@ -77,3 +77,13 @@ svg { display: block; width: 100%; height: auto; }
 @media (min-width: 1000px) { .grid { grid-template-columns: 1fr 1fr; } }   /* controls left, plots right */
 @media (max-width: 700px) { .topbar { padding: 10px 12px; } .grid { padding: 12px; } }
 .cal-live { font: 600 22px var(--mono); margin: 12px 0 4px; }
+/* study protocol page (U13) */
+.blocks { max-height: 65vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+.block { border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); padding: 10px 12px; }
+.block > summary { cursor: pointer; }
+.block[open] > summary { margin-bottom: 10px; }
+.fields input, .fields select { width: 100%; }
+.fields label[hidden] { display: none; }
+.fnote { font-size: 12px; min-height: 1.2em; }
+.bad { color: var(--stop); }
+.ok-text { color: var(--accent); }

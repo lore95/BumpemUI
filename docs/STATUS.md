@@ -3,6 +3,7 @@
 Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.5.0).
 
 ## Done
+- **Study protocol page (2026-11-05, U13), placeholder parameters:** `web/protocol.html` (link under Board settings): subject (5 fields) + scrollable blocks (15 fields: speed, directions, intensity % BW → N, pulse timing, gait phase + trigger foot, random interval or predefined steps); Import / Export CSV, Download template, Confirm per section. Fields from `web/protocol_schema.js`. Checked in Chrome against the simulator (import with `72,5` and a bad value, hidden fields, over-max intensity, 8 blocks scrolling). Start disabled until server trials exist.
 - **Sensor calibration page (2026-11-03, U11):** `web/calibrate.html` → CSV for `apply_calibration.bat` (server D42). Checked on the real Teensy from the Mac (tara, record, CSV through the script). Link under Board settings.
 - **Defaults warning (2026-11-03, U10):** line under the header when the board's parameters differ from the saved defaults (or none are saved); "Board restarted: …" on the server's `RESTART` event. Checked in Chrome against the simulator.
 - **Logo (2026-11-02):** user's icon (treadmill seen from above, N/E/S/W ropes) as tab icon (`web/favicon.png`, 64 px) and header logo (`web/logo.png`, 128 px) on both pages; corners transparent. Source PNG in `../bumpemInstallation/`.
@@ -24,7 +25,7 @@ Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.5.0).
 ## Next
 1. On the real Teensy: `bumpem serve --testing --board /dev/cu.usbmodem169222501` → http://127.0.0.1:8000/ → Pull each motor (5 N, 400 ms): does the right rope move?
 2. When the server has PTO (API step 2): gait-phase picker back (git history, `web/gait.js`), show gait events from the stream.
-3. Trials page (API step 3): blocks, shuffle, 50–75 steps, recovery, progress.
+3. Study protocol: replace the placeholder fields in `web/protocol_schema.js` with the lab's parameter list (user brings it). Then API.md trials schema from it (server), then Start on `protocol.html` (API step 3: run blocks, progress).
 
 ## Open
 - Network use from another PC: needs the server's access token + `--host` (BumpemServer TODO).

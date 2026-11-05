@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bump'em Study Protocol</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><img class="logo" src="logo.png" alt="">Bump'em <span>study protocol</span></div>
+  <div class="conn">
+    <span id="conn-state" class="pill">—</span>
+    <a class="small" href="./">Test page</a>
+  </div>
+  <div class="actions">
+    <button id="btn-stop" class="stop" title="Drivers off now (key: Esc)">STOP <kbd>Esc</kbd></button>
+  </div>
+</header>
+<p class="stop-note">STOP drops rope tension: stop the treadmill first, unless it is an emergency.</p>
+
+<main class="grid proto">
+  <section class="card wide" aria-labelledby="h-file">
+    <h2 id="h-file">Protocol file <span class="muted" id="schema-version"></span></h2>
+    <div class="row">
+      <input id="file" type="file" accept=".csv,text/csv" hidden>
+      <button id="btn-import">Import CSV</button>
+      <button id="btn-export">Export CSV</button>
+      <button id="btn-template">Download template</button>
+      <button id="btn-new" class="warn">New</button>
+      <span id="file-note" class="muted small"></span>
+    </div>
+    <ul id="import-report" class="small warn-text" hidden></ul>
+    <p class="muted small">Placeholder parameters until the lab list is in. Prepare a file offline from the template (Excel: one subject list, then one row per block), import it, check each section and Confirm it. Any edit needs a new Confirm. The draft stays in this browser.</p>
+  </section>
+
+  <section class="card wide" id="subject" aria-labelledby="h-subject"></section>
+
+  <section class="card wide" aria-labelledby="h-blocks">
+    <h2 id="h-blocks">Blocks <span class="muted" id="block-count"></span></h2>
+    <div id="blocks" class="blocks"></div>
+    <div class="row"><button id="btn-add">+ Add block</button></div>
+  </section>
+
+  <section class="card wide" aria-labelledby="h-run">
+    <h2 id="h-run">Run</h2>
+    <div class="row">
+      <button id="btn-start" class="primary" disabled>Start block 1</button>
+      <span id="ready" class="small"></span>
+    </div>
+    <p class="muted small">Running blocks needs the server's trials (API step 3). Until then this page only prepares and checks the protocol.</p>
+  </section>
+</main>
+
+<script src="protocol_schema.js"></script>
+<script src="protocol.js"></script>
+</body>
+</html>
