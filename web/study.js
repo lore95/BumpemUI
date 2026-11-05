@@ -147,9 +147,11 @@ function showStudy(st) {
     : `Protocol loaded: ${st.blocks} blocks, left belt = ${st.plates.left}.`, st.state === "none");
   $("gait-speed").textContent = blk ? blk.speed_ms : "–";
   const g = st.gait, gOk = g && blk && Math.abs(g.speed_ms - blk.speed_ms) < 1e-6;
-  note("gait-note", st.state === "gait" ? `Recording foot strikes… ${g.until_s} s left` : g && g.left
-    ? `Gait pattern at ${g.speed_ms} m/s: stride left ${g.left.stride_ms} ms (sd ${g.left.sd_ms}, ${g.left.n}), right ${g.right.stride_ms} ms (sd ${g.right.sd_ms}, ${g.right.n})` +
-      (gOk ? "" : ` · block ${i + 1} runs at ${blk.speed_ms} m/s: record again`) : "Needed before each new speed.", g && !gOk && st.state !== "gait");
+  const side = (k) => `${k} stride ${g[k].stride_ms} ms (sd ${g[k].sd_ms}, n ${g[k].n}), contact ${g[k].stance_ms} ms (sd ${g[k].stance_sd_ms}), ` +
+    `threshold ${g[k].td_n} / ${g[k].fo_n} N (noise sd ${g[k].noise_sd_n ?? "?"} N)`;
+  note("gait-note", st.state === "gait" ? `Recording the plates… ${g.until_s} s left` : g && g.left
+    ? `Gait pattern at ${g.speed_ms} m/s, plates ${g.rate_hz} Hz. ${side("left")}. ${side("right")}.` +
+      (gOk ? "" : ` Block ${i + 1} runs at ${blk.speed_ms} m/s: record again.`) : "Needed before each new speed. Also sets each plate's contact threshold from its noise.", g && !gOk && st.state !== "gait");
   const msg = { loaded: "", ready: "Ready: Start runs block 1.", running: "", stopped: "Block stopped", block_done: `Block ${st.block} done. Set the next speed, record the gait pattern if it changed, then start block ${st.block + 1}.`,
     finished: "All blocks done. Release (treadmill stopped first), then download the recording.", gait: "" }[st.state] || "";
   note("study-note", [msg, st.message].filter(Boolean).join(": "), st.state === "stopped");
@@ -168,7 +170,7 @@ function renderBlocks() {
     const timing = b.timing_mode === "random" ? `${b.interval_min_steps}–${b.interval_max_steps} steps` : `steps ${b.schedule_steps.join(" ")}`;
     return `<tr${i === cur ? ' class="cur"' : ""}><td>${i + 1}</td><td>${esc(b.label)}</td><td>${b.speed_ms}</td>` +
       `<td title="${b.intensity_pct_bw} % body weight">${(b.intensity_pct_bw / 100 * mass * 9.81).toFixed(0)} × ${b.n_perturbations}</td>` +
-      `<td>${b.directions_deg.join(" ")}</td><td>${b.gait_phase_pct} % · ${b.trigger_side}</td><td class="small">${timing}</td><td class="small">${status}</td></tr>`;
+      `<td>${b.directions_deg.join(" ")}</td><td>${b.gait_phase_pct} % ${b.gait_phase_of || "stance"} · ${b.trigger_side}</td><td class="small">${timing}</td><td class="small">${status}</td></tr>`;
   }).join("");
 }
 function updateButtons() {
@@ -240,7 +242,9 @@ async function init() {
   $("btn-stop").onclick = stop; $("btn-clear").onclick = clearFault; $("btn-vicon").onclick = viconToggle;
   $("btn-rec").onclick = stopRec;
   $("btn-gait").onclick = () => study("gait", { duration_s: parseFloat($("gait-s").value) || 20 });
-  $("btn-start").onclick = () => study("start");
+  $("latency").value = localGet("latencyMs") || "0";
+  $("latency").onchange = () => localSet("latencyMs", $("latency").value);
+  $("btn-start").onclick = () => study("start", { latency_ms: Math.max(0, parseFloat($("latency").value) || 0) });
   $("btn-pause").onclick = () => study("stop");
   $("left-plate").onchange = () => { if (S.protocol && S.vicon && S.vicon.connected) loadStudy(); };   // new mapping: new gait pattern needed
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); stop(); } });
