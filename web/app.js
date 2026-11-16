@@ -328,6 +328,8 @@ function showLog(l) {
       const link = document.createElement("a"); link.href = `${API}/log/file?kind=${kind}`; link.download = ""; link.textContent = text;
       $("log-note").append(i ? " · " : "", link);
     });
+    const d = document.createElement("a"); d.href = `${API}/log/delay?format=text`; d.target = "_blank"; d.textContent = "delay report";   // D51
+    $("log-note").append(" · ", d);
   }
   clearInterval(S.logTimer); S.logTimer = l.recording ? setInterval(loadLog, 1000) : null;
   updateButtons();

@@ -67,6 +67,22 @@ async function release() {
   if (S.recording) setTimeout(stopRec, 1500);   // keep the ramp down in the file
 }
 async function stopRec() { try { showLog(await api("POST", "/log/stop")); } catch (e) { note("log-note", e.message, true); } }
+async function stopRecClick(ev) {   // two clicks while a study is loaded: a block without a recording is lost (D51)
+  const b = ev.currentTarget, live = S.study.state !== "none" && S.study.state !== "finished";
+  if (live && !b.dataset.armed) {
+    b.dataset.armed = "1"; b.textContent = "Click again: stop recording";
+    setTimeout(() => { delete b.dataset.armed; b.textContent = "Stop rec"; }, 3000);
+    return;
+  }
+  delete b.dataset.armed; b.textContent = "Stop rec";
+  await stopRec();
+}
+async function ensureRecording() {   // Start needs a recording (server D51): start one if it was stopped
+  if (S.recording) return true;
+  const id = (S.study.subject_id || "").replace(/[^A-Za-z0-9_-]/g, "");
+  try { showLog(await api("POST", "/log/start", { label: `${id ? id + "_" : ""}study`.slice(0, 40) })); return true; }
+  catch (e) { note("study-note", "Recording could not start: " + e.message, true); return false; }
+}
 function stop() {   // never asks: emergency. The recording keeps running (Stop rec ends it)
   if (S.ws && S.ws.readyState === 1) S.ws.send(JSON.stringify({ type: "estop" }));
   fetch(API + "/estop", { method: "POST" }).catch(() => {});
@@ -84,6 +100,8 @@ function showLog(l) {
       const a = document.createElement("a"); a.href = `${API}/log/file?kind=${kind}`; a.download = ""; a.textContent = text;
       e.append(i ? " · " : "", a);
     });
+    const d = document.createElement("a"); d.href = `${API}/log/delay?format=text`; d.target = "_blank"; d.textContent = "delay report";   // D51
+    e.append(" · ", d);
   }
   $("btn-rec").hidden = !S.recording;
 }
@@ -275,11 +293,11 @@ async function init() {
   try { const d = JSON.parse(localGet("bumpemStudy")); if (d && d.protocol && d.protocol.blocks) { S.protocol = d.protocol; fresh = d.fresh !== false; } } catch (e) { /* none */ }
   $("btn-connect").onclick = connectToggle; $("btn-arm").onclick = arm; $("btn-release").onclick = release;
   $("btn-stop").onclick = stop; $("btn-clear").onclick = clearFault; $("btn-vicon").onclick = viconToggle;
-  $("btn-rec").onclick = stopRec;
+  $("btn-rec").onclick = stopRecClick;
   $("btn-gait").onclick = () => study("gait", { duration_s: parseFloat($("gait-s").value) || 20 });
   $("latency").value = localGet("latencyMs") || "0";
   $("latency").onchange = () => localSet("latencyMs", $("latency").value);
-  $("btn-start").onclick = () => study("start", { latency_ms: Math.max(0, parseFloat($("latency").value) || 0) });
+  $("btn-start").onclick = async () => { if (await ensureRecording()) study("start", { latency_ms: Math.max(0, parseFloat($("latency").value) || 0) }); };
   $("btn-pause").onclick = () => study("stop");
   $("left-plate").onchange = () => { if (S.protocol && S.vicon && S.vicon.connected) loadStudy(); };   // new mapping: new gait pattern needed
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); stop(); } });

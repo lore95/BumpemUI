@@ -3,6 +3,7 @@
 Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.6.0).
 
 ## Done
+- **Delay report, error log, recording safeguards (2026-11-16, U22, server D51):** checked in Chrome on sim: Stop rec asks twice, Start restarts the recording, delay report after Stop rec (System delay 11 ms on sim).
 - **Final protocol + BumpemPattern (2026-11-16, U21, server D50):** checked in Chrome on sim: pattern generated / saved / listed; SetUp duration alert; pattern run on BumpemActivation (pulls at the pattern's steps, baseline from the protocol).
 - **Connection alerts + clock line (2026-11-05, U20, server D49):** red box on every page while the Teensy / Vicon target is missing (checked with COM3 + 192.168.1.60:801 absent on the Mac); BumpemActivation clock line, Start only when in sync (checked on sim: in sync, block ran, SYNC row written).
 - **Study: SLAP-style contacts (2026-11-05, U15, server D45):** Phase of stance/cycle in the protocol; gait pattern shows plate rate, stride, contact time, thresholds and noise per side; System delay sent at Start. Checked in Chrome against sim board + sim plates (1000 Hz, thresholds 23.8 / 11.9 N from 4 N noise, contact 248 ms, 200 ms delay → next contact).
