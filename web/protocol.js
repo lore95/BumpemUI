@@ -8,13 +8,17 @@ const STORE = "bumpemProtocol";
 const STATUS = { new: ["not filled in", "muted"], imported: ["⚠ imported: check, then Confirm", "warn-text"],
   edited: ["● edited: Confirm", "warn-text"], confirmed: ["✓ confirmed", "ok-text"] };
 let P = empty();          // {subject: {values, status}, blocks: [{values, status, closed}], source}
-let maxN = null;          // fmax_n − baseline_n from the board, when one is connected
+let fmax = null, boardBase = 0;   // board max force and baseline, when one is connected
+let PAT = {}, patLoaded = false;   // saved patterns on the server, by name (D50)
 
 function empty() { return { subject: { values: {}, status: "new" }, blocks: [], source: "" }; }
 function save() { try { localStorage.setItem(STORE, JSON.stringify(P)); } catch (e) { /* private window */ } }
 function load() { try { const p = JSON.parse(localStorage.getItem(STORE)); if (p && p.subject && Array.isArray(p.blocks)) P = p; } catch (e) { /* none */ } }
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const ctx = () => ({ subject: P.subject.values, maxN });
+const ctx = () => {   // pull limit = max force − the protocol's baseline (set at Arm), else the board's
+  const b = num(P.subject.values.baseline_n);
+  return { subject: P.subject.values, maxN: fmax === null ? null : fmax - (isNaN(b) ? boardBase : b), patterns: PAT, patternsLoaded: patLoaded };
+};
 const sections = () => [["subject", "s", P.subject], ...P.blocks.map((b, i) => ["block", i, b])];
 
 // ---------------------------------------------------------------- checks
@@ -30,18 +34,19 @@ function fieldError(f, s) {
   if (f.type === "choice") return f.options.includes(s) ? "" : `one of ${f.options.join(", ")}`;
   return "";
 }
-function errors(kind, v) {   // {key: message}, shown fields only
-  const sec = SCHEMA[kind], out = {};
+function errors(kind, v) {   // {key: message}, shown fields only; out.alerts: messages for the block header
+  const sec = SCHEMA[kind], out = {}, alerts = [];
   for (const f of sec.fields) if (shown(f, v)) { const e = fieldError(f, v[f.key]); if (e) out[f.key] = e; }
-  if (sec.checks) for (const [k, m] of sec.checks(v, ctx())) if (!out[k]) out[k] = m;
-  return out;
+  if (sec.checks) for (const [k, m, alert] of sec.checks(v, ctx())) { if (!out[k]) out[k] = m; if (alert) alerts.push(m); }
+  return [out, alerts];
 }
 
 // ---------------------------------------------------------------- render
 function fieldHTML(i, f, v) {
   const val = v[f.key] ?? "", data = `data-sec="${i}" data-key="${f.key}"`;
-  const input = f.type === "choice"
-    ? `<select ${data}><option value=""></option>${(f.options.includes(val) || val === "" ? f.options : [...f.options, val])
+  const opts = f.type === "pattern" ? Object.keys(PAT).sort() : f.options;
+  const input = f.type === "choice" || f.type === "pattern"
+    ? `<select ${data}><option value=""></option>${(opts.includes(val) || val === "" ? opts : [...opts, val])
       .map((o) => `<option${o === val ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>`
     : `<input ${data} type="text" ${f.type === "text" ? "" : 'inputmode="decimal"'} value="${esc(val)}" placeholder="${esc(f.example)}">`;
   return `<label id="l-${i}-${f.key}"><span>${esc(f.label)}${f.unit ? ` <span class="u">${esc(f.unit)}</span>` : ""}` +
@@ -67,7 +72,7 @@ function render() {
 function update() {   // notes, statuses, buttons; no re-render (keeps the cursor in the field)
   let todo = 0, bad = 0;
   for (const [kind, i, sec] of sections()) {
-    const v = sec.values, err = errors(kind, v), n = Object.keys(err).length;
+    const v = sec.values, [err, alerts] = errors(kind, v), n = Object.keys(err).length;
     for (const f of SCHEMA[kind].fields) {
       $(`l-${i}-${f.key}`).hidden = !shown(f, v);
       const note = $(`n-${i}-${f.key}`);
@@ -75,7 +80,8 @@ function update() {   // notes, statuses, buttons; no re-render (keeps the curso
       note.className = "fnote " + (err[f.key] ? "bad" : "muted");
     }
     if (n && sec.status === "confirmed") sec.status = "edited";   // e.g. a new body mass puts a block above the max force
-    const [txt, cls] = n && sec.status !== "new" ? [`✗ ${n} to fix`, "bad"] : STATUS[sec.status];
+    const [txt, cls] = alerts.length ? [`✗ ${alerts.join("; ")}`, "bad"]   // e.g. too many perturbations for the duration
+      : n && sec.status !== "new" ? [`✗ ${n} to fix`, "bad"] : STATUS[sec.status];
     $(`st-${i}`).textContent = txt; $(`st-${i}`).className = "small " + cls;
     document.querySelector(`button[data-act=confirm][data-sec="${i}"]`).disabled = !!n || sec.status === "confirmed";
     if (kind === "block") $(`sum-${i}`).textContent = SCHEMA.block.summary.map((k) => {
@@ -212,7 +218,7 @@ function typed() {   // API.md "Study" protocol: numbers as numbers, lists as ar
     for (const f of SCHEMA[kind].fields) {
       const s = String(v[f.key] ?? "").trim();
       if (s === "" || !shown(f, v)) continue;
-      o[f.key] = f.type === "number" ? num(s) : f.type === "list" ? items(s).map(num) : s;
+      o[f.key] = f.type === "number" ? num(s) : f.type === "list" ? items(s).map(num) : f.map ? (f.map[s] ?? s) : s;
     }
     return o;
   };
@@ -224,6 +230,15 @@ function startStudy() {
   location.href = "BumpemActivation.html";
 }
 function stop() { fetch(API + "/estop", { method: "POST" }).catch(() => {}); }
+
+async function loadPatterns() {   // names + gaps for the pattern field and the duration check
+  try {
+    const list = await (await fetch(API + "/patterns")).json(), got = {};
+    for (const p of list) got[p.name] = await (await fetch(`${API}/patterns/${encodeURIComponent(p.name)}`)).json();
+    PAT = got; patLoaded = true;
+  } catch (e) { patLoaded = false; }
+  render();
+}
 
 async function init() {
   load();
@@ -242,11 +257,13 @@ async function init() {
   for (const id of ["subject", "blocks"]) { $(id).addEventListener("input", onInput); $(id).addEventListener("click", onAction); }
   $("blocks").addEventListener("toggle", (e) => { const b = P.blocks[+e.target.dataset.sec]; if (b) { b.closed = !e.target.open; save(); } }, true);
   render();
+  loadPatterns();
+  window.addEventListener("focus", loadPatterns);   // back from BumpemPattern: new patterns in the list
   try {
     const i = await (await fetch(API + "/info")).json();
     $("conn-state").textContent = i.port ? `board ${i.port}` : "no board (STOP works once connected on the test page)";
     $("conn-state").classList.toggle("ok", !!i.port);
-    if (i.port) { const p = await (await fetch(API + "/params")).json(); maxN = p.fmax_n - p.baseline_n; update(); }
+    if (i.port) { const p = await (await fetch(API + "/params")).json(); fmax = p.fmax_n; boardBase = p.baseline_n; update(); }
   } catch (e) { $("conn-state").textContent = "server not running"; }
 }
 init();

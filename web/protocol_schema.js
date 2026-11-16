@@ -1,65 +1,95 @@
-// Study protocol parameters (U13). PLACEHOLDER list until the lab's parameter list arrives: edit only this file.
-// Field: key (CSV column), label, type text | number | choice | list (numbers separated by spaces), unit, min, max,
-// int, options (choice), required, example (template), hint, show {otherKey: value} (field used only then).
-// note (values, ctx) → text shown under the field. checks (values, ctx) → [[key, message], ...]: rules across fields.
-// Values are the strings as typed or imported; ctx = {subject: subject values, maxN: board max pulse force or null}.
+// Study protocol parameters (U13; final list U21, server D50): edit only this file to change the fields.
+// Field: key (CSV column), label, type text | number | choice | list (numbers separated by spaces) | pattern (a saved
+// pattern's name, options from the server), unit, min, max, int, options (choice), map (choice text → API value),
+// required, example (template), hint, show {otherKey: value} (field used only then).
+// note (values, ctx) → text shown under the field. checks (values, ctx) → [[key, message, alert?], ...]: rules across
+// fields; alert = also shown in red in the block's header line.
+// Values are the strings as typed or imported; ctx = {subject: subject values, maxN: board max pulse force or null,
+// patterns: {name: pattern with items} saved on the server, patternsLoaded}.
 // summary: keys shown in a block's header line. templateBlocks: example blocks of the template (overrides of `example`).
 "use strict";
 const num = (s) => { s = String(s ?? "").trim().replace(",", "."); return s !== "" && isFinite(s) ? Number(s) : NaN; };   // 72,5 from German Excel
-const pullN = (v, ctx) => num(v.intensity_pct_bw) / 100 * num(ctx.subject.mass_kg) * 9.81;
+const G = 9.81;
+// steps per second (both feet) assumed by the duration check until a real gait pattern is measured (BumpemActivation
+// checks again with it): typical treadmill cadence, walking ~108 steps/min, running ~168 steps/min
+const CADENCE = { walking: 1.8, running: 2.8 };
+const mode = (ctx) => (ctx.subject.mode === "running" ? "running" : "walking");
+function pullN(v, ctx) {   // amplitude in N, from either unit
+  const a = num(v.amplitude), m = num(ctx.subject.mass_kg);
+  return v.amplitude_mode === "absolute N" ? a : a / 100 * m * G;
+}
+function phaseName(x, md) {   // % of the gait cycle (touch-down → touch-down of the same foot)
+  if (md === "running") return x < 40 ? "stance" : x < 55 || x >= 85 ? "flight" : "swing";
+  return x < 10 ? "loading (double support)" : x < 50 ? "single stance" : x < 60 ? "push-off (double support)" : "swing";
+}
+
 const SCHEMA = {
-  version: "placeholder-1",
+  version: "final-1",
   subject: {
     title: "Subject",
     fields: [
       { key: "subject_id", label: "Subject code", type: "text", required: true, example: "S014", hint: "Code only, never the name" },
       { key: "mass_kg", label: "Body mass", type: "number", unit: "kg", min: 20, max: 200, required: true, example: "72.5",
-        note: (v) => num(v.mass_kg) > 0 ? `${(num(v.mass_kg) * 9.81).toFixed(0)} N body weight` : "" },
+        note: (v) => num(v.mass_kg) > 0 ? `${(num(v.mass_kg) * G).toFixed(0)} N body weight` : "" },
       { key: "height_cm", label: "Height", type: "number", unit: "cm", min: 100, max: 230, required: true, example: "178" },
-      { key: "sex", label: "Sex", type: "choice", options: ["f", "m", "d"], required: true, example: "f" },
-      { key: "dominant_leg", label: "Dominant leg", type: "choice", options: ["left", "right"], example: "right" },
+      { key: "mode", label: "Mode", type: "choice", options: ["walking", "running"], required: true, example: "walking",
+        hint: "Sets the cadence for the duration check, the gait-phase names and the gait-pattern check" },
+      { key: "baseline_n", label: "Baseline rope tension", type: "number", unit: "N", min: 0, max: 20, required: true, example: "4",
+        hint: "Hold force between pulls; set on the board at Arm" },
     ],
   },
   block: {
     title: "Block",
     fields: [
-      { key: "label", label: "Block name", type: "text", example: "Familiarisation" },
-      { key: "speed_ms", label: "Treadmill speed", type: "number", unit: "m/s", min: 0.5, max: 6, required: true, example: "2.5" },
-      { key: "warmup_s", label: "Run-in before first pull", type: "number", unit: "s", min: 0, max: 600, example: "60" },
-      { key: "n_perturbations", label: "Perturbations", type: "number", int: true, min: 1, max: 200, required: true, example: "10" },
-      { key: "directions_deg", label: "Directions", type: "list", unit: "°", min: -180, max: 180, required: true, example: "90 -90",
-        hint: "0 front, +90 left, −90 right, 180 back; several = mixed in the block" },
-      { key: "intensity_pct_bw", label: "Intensity", type: "number", unit: "% body weight", min: 0, max: 30, required: true, example: "10",
-        note: (v, ctx) => isNaN(pullN(v, ctx)) ? "N needs body mass" : `= ${pullN(v, ctx).toFixed(1)} N` },
-      { key: "phase1_ms", label: "Phase 1 (ramp up)", type: "number", unit: "ms", min: 0, max: 500, required: true, example: "50" },
-      { key: "dur_ms", label: "Duration (incl. ramps)", type: "number", unit: "ms", min: 100, max: 1000, required: true, example: "400" },
-      { key: "phase2_ms", label: "Phase 2 (ramp down)", type: "number", unit: "ms", min: 0, max: 500, required: true, example: "50" },
-      { key: "trigger_side", label: "Trigger foot strike", type: "choice", options: ["left", "right", "any"], required: true, example: "any" },
-      { key: "gait_phase_pct", label: "Gait phase", type: "number", unit: "%", min: 0, max: 99.9, required: true, example: "60",
-        hint: "After the trigger foot's touch-down",
-        note: (v) => { const x = num(v.gait_phase_pct); return isNaN(x) ? "" : v.gait_phase_of === "cycle"
-          ? `of the stride: ${x < 40 ? "stance" : x < 55 || x >= 85 ? "float" : "swing"} (running)` : "of the contact time (touch-down → foot-off)"; } },
-      { key: "gait_phase_of", label: "Phase of", type: "choice", options: ["stance", "cycle"], required: true, example: "stance",
-        hint: "stance: contact time (lab script) · cycle: stride" },
-      { key: "timing_mode", label: "Timing", type: "choice", options: ["random", "predefined"], required: true, example: "random" },
-      { key: "interval_min_steps", label: "Interval min", type: "number", unit: "steps", int: true, min: 5, max: 500, required: true,
-        example: "50", show: { timing_mode: "random" } },
-      { key: "interval_max_steps", label: "Interval max", type: "number", unit: "steps", int: true, min: 5, max: 500, required: true,
-        example: "75", show: { timing_mode: "random" } },
-      { key: "schedule_steps", label: "Pull at steps", type: "list", unit: "steps", int: true, min: 1, max: 100000, required: true,
-        example: "40 95 160", show: { timing_mode: "predefined" }, hint: "Step numbers from block start, one per perturbation" },
+      { key: "label", label: "Block name", type: "text", required: true, example: "Main 1" },
+      { key: "speed_ms", label: "Treadmill speed", type: "number", unit: "m/s", min: 0.3, max: 6, required: true, example: "1.2" },
+      { key: "duration_s", label: "Block duration", type: "number", unit: "s", min: 10, max: 7200, required: true, example: "300" },
+      { key: "warmup_s", label: "Warm-up", type: "number", unit: "s", min: 0, max: 600, required: true, example: "30",
+        hint: "No pulls and no steps counted at the start" },
+      { key: "n_perturbations", label: "Number of perturbations", type: "number", int: true, min: 1, max: 500, required: true, example: "10" },
+      { key: "pattern", label: "Pattern", type: "pattern", required: true, example: "",
+        hint: "Directions + step gaps, the same for every participant (make one in BumpemPattern)",
+        note: (v, ctx) => { const p = ctx.patterns[v.pattern]; if (!p) return ""; const g = p.items.map((i) => i.gap_steps);
+          return `${p.items.length} perturbations, gaps ${Math.min(...g)}–${Math.max(...g)} steps`; } },
+      { key: "trigger_side", label: "Leg for the phase", type: "choice", options: ["left", "right", "any"], required: true, example: "left",
+        hint: "Its touch-down starts the gait cycle" },
+      { key: "gait_phase_pct", label: "Gait-cycle phase of the pull", type: "number", unit: "% of the cycle", min: 0, max: 99.9, required: true, example: "30",
+        note: (v, ctx) => { const x = num(v.gait_phase_pct); return isNaN(x) ? "" : `${phaseName(x, mode(ctx))} (${mode(ctx)})`; } },
+      { key: "phase1_ms", label: "Ramp up", type: "number", unit: "ms", min: 0, max: 500, required: true, example: "50" },
+      { key: "phase2_ms", label: "Ramp down", type: "number", unit: "ms", min: 0, max: 500, required: true, example: "50" },
+      { key: "amplitude_mode", label: "Amplitude as", type: "choice", options: ["% body weight", "absolute N"],
+        map: { "% body weight": "percent_bw", "absolute N": "newton" }, required: true, example: "% body weight" },
+      { key: "amplitude", label: "Amplitude", type: "number", min: 0.1, max: 200, required: true, example: "10",
+        note: (v, ctx) => {
+          const n = pullN(v, ctx), m = num(ctx.subject.mass_kg);
+          if (isNaN(n)) return v.amplitude_mode === "absolute N" ? "N" : "% body weight (N needs the body mass)";
+          return v.amplitude_mode === "absolute N" ? `N${m > 0 ? ` = ${(n / (m * G) * 100).toFixed(1)} % body weight` : ""}`
+            : `% body weight = ${n.toFixed(1)} N`;
+        } },
+      { key: "dur_ms", label: "Perturbation duration", type: "number", unit: "ms, ramps included", min: 100, max: 1000, required: true, example: "400" },
     ],
-    summary: ["label", "speed_ms", "intensity_pct_bw", "directions_deg", "timing_mode"],
-    templateBlocks: [{}, { label: "Main", n_perturbations: "3", timing_mode: "predefined" }],
+    summary: ["label", "speed_ms", "duration_s", "n_perturbations", "pattern"],
+    templateBlocks: [{ label: "Familiarisation", n_perturbations: "5", duration_s: "180" }, {}],
     checks: (v, ctx) => {
       const n = (k) => num(v[k]), out = [];
-      if (ctx.maxN !== null && pullN(v, ctx) > ctx.maxN) out.push(["intensity_pct_bw", `${pullN(v, ctx).toFixed(0)} N is above the board's max ${ctx.maxN} N`]);
-      if (n("phase1_ms") + n("phase2_ms") > n("dur_ms")) out.push(["dur_ms", "shorter than phase 1 + phase 2"]);
-      if (v.timing_mode === "random" && n("interval_max_steps") < n("interval_min_steps")) out.push(["interval_max_steps", "below Interval min"]);
-      if (v.timing_mode === "predefined" && v.schedule_steps) {
-        const s = String(v.schedule_steps).trim().split(/[\s;|/]+/).map(Number);
-        if (s.some((x, i) => i && x <= s[i - 1])) out.push(["schedule_steps", "steps must increase"]);
-        else if (n("n_perturbations") && s.length !== n("n_perturbations")) out.push(["schedule_steps", `${s.length} steps for ${n("n_perturbations")} perturbations`]);
+      if (n("phase1_ms") + n("phase2_ms") > n("dur_ms")) out.push(["dur_ms", "shorter than ramp up + ramp down"]);
+      if (v.amplitude_mode === "% body weight" && n("amplitude") > 100) out.push(["amplitude", "above 100 % body weight"]);
+      const f = pullN(v, ctx);
+      if (ctx.maxN !== null && f > ctx.maxN) out.push(["amplitude", `${f.toFixed(0)} N is above the board's max ${ctx.maxN} N`]);
+      if (n("warmup_s") >= n("duration_s")) out.push(["warmup_s", "as long as the block"]);
+      const p = ctx.patterns[v.pattern];
+      if (v.pattern && ctx.patternsLoaded && !p) out.push(["pattern", "not saved on this PC: make it in BumpemPattern"]);
+      if (p && n("n_perturbations") > p.items.length) out.push(["n_perturbations", `the pattern has only ${p.items.length}`]);
+      else if (p && n("duration_s") > 0) {               // do the perturbations fit in the block's time?
+        const md = mode(ctx), cad = CADENCE[md], extra = v.trigger_side === "any" ? 0 : 1;
+        let t = n("warmup_s") || 0, k = 0;
+        for (const it of p.items.slice(0, n("n_perturbations"))) {
+          t += (it.gap_steps + extra) / cad;
+          if (t > n("duration_s")) break;
+          k++;
+        }
+        if (k < n("n_perturbations"))
+          out.push(["n_perturbations", `too many for ${n("duration_s")} s: at most ${k} fit (${md} ≈ ${Math.round(cad * 60)} steps/min, gaps from the pattern)`, true]);
       }
       return out;
     },

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BumpemPattern</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><img class="logo" src="logo.png" alt="">Bump'em <span>Pattern</span></div>
+  <div class="conn"><a class="small" href="BumpemSetUp.html">BumpemSetUp</a></div>
+  <div class="actions">
+    <button id="btn-stop" class="stop" title="Drivers off now (key: Esc)">STOP <kbd>Esc</kbd></button>
+  </div>
+</header>
+<p class="stop-note">STOP drops rope tension: stop the treadmill first, unless it is an emergency.</p>
+
+<main class="grid">
+  <div class="col">
+    <section class="card" aria-labelledby="h-rules">
+      <h2 id="h-rules">Rules</h2>
+      <p class="muted small">A pattern = directions in order + steps between perturbations. Made once, saved, then chosen in a block on BumpemSetUp: every participant gets the same sequence. A saved pattern never changes.</p>
+      <div class="fields">
+        <label>Name <span class="u">letters, digits, _ -</span><input id="name" type="text" maxlength="40" placeholder="lateral-12"></label>
+        <label>Perturbations<input id="n" type="text" inputmode="decimal" value="12"></label>
+        <label>Gap min <span class="u">steps</span><input id="gmin" type="text" inputmode="decimal" value="40"></label>
+        <label>Gap max <span class="u">steps</span><input id="gmax" type="text" inputmode="decimal" value="60"></label>
+        <label>Max same direction in a row<input id="run" type="text" inputmode="decimal" value="2"></label>
+        <label>Seed <span class="u">same seed = same pattern</span><input id="seed" type="text" inputmode="decimal"></label>
+      </div>
+      <p class="small"><b>Directions</b> <span class="muted">(seen from above; the subject is pulled that way)</span></p>
+      <div class="chans" id="dirs"></div>
+      <div class="row">
+        <label>Other angles <span class="u">°, spaces</span><input id="extra" type="text" size="14" placeholder="30 -30"></label>
+        <label><input id="balanced" type="checkbox" checked> each direction equally often</label>
+      </div>
+      <div class="row">
+        <button id="btn-gen" class="primary">Generate</button>
+        <span id="gen-note" class="small"></span>
+      </div>
+      <label class="small">Note <span class="u">optional, saved with it</span><input id="note" type="text" maxlength="200" style="width:100%"></label>
+      <div class="row"><button id="btn-save" class="confirm" disabled>Save pattern</button><span id="save-note" class="small"></span></div>
+    </section>
+    <section class="card" aria-labelledby="h-saved">
+      <h2 id="h-saved">Saved on this PC</h2>
+      <table class="pulls"><thead><tr><th>Name</th><th>n</th><th>Directions</th><th>Gaps</th><th>Created</th><th></th></tr></thead>
+        <tbody id="saved"></tbody></table>
+    </section>
+  </div>
+  <div class="col">
+    <section class="card" aria-labelledby="h-prev">
+      <h2 id="h-prev">Pattern <span class="muted" id="prev-title"></span></h2>
+      <p id="prev-sum" class="small"></p>
+      <div class="blocks"><table class="pulls"><thead><tr><th>#</th><th>Direction</th><th>Gap <span class="u">steps</span></th><th>Step</th></tr></thead>
+        <tbody id="prev"></tbody></table></div>
+    </section>
+  </div>
+</main>
+
+<script src="alerts.js"></script>
+<script src="pattern.js"></script>
+</body>
+</html>

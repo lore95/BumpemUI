@@ -50,8 +50,12 @@ function setState(st) {
   $("board-state").className = `pill state ${st || ""}`;
   updateButtons();
 }
-async function arm() {   // Arm = start of the recording (user, 2026-11-05)
-  try { await api("POST", "/arm"); } catch (e) { note("study-note", e.message, true); return; }
+async function arm() {   // Arm = start of the recording (user, 2026-11-05); the protocol's baseline first (D50)
+  const base = S.protocol && S.protocol.subject.baseline_n;
+  try {
+    if (base != null && S.params && Math.abs(S.params.baseline_n - base) > 0.01) S.params = await api("PATCH", "/params", { baseline_n: base });
+    await api("POST", "/arm");
+  } catch (e) { note("study-note", e.message, true); return; }
   if (S.recording) return;
   const id = (S.study.subject_id || (S.protocol && S.protocol.subject.subject_id) || "").replace(/[^A-Za-z0-9_-]/g, "");
   try { showLog(await api("POST", "/log/start", { label: `${id ? id + "_" : ""}study`.slice(0, 40) })); }
@@ -168,7 +172,8 @@ function showStudy(st) {
   $("btn-gait").classList.toggle("confirm", needGait);   // yellow: this is the next thing to press
   $("progress").innerHTML = st.state === "running" || st.state === "stopped"
     ? `<b>${st.done}</b> / ${st.total} perturbations · ${st.amplitude_n} N · step ${st.steps}` +
-      (st.next_in_steps != null ? ` · next due in <b>${st.next_in_steps}</b> steps` : "") : "";
+      (st.next_in_steps != null ? ` · next due in <b>${st.next_in_steps}</b> steps` : "") +
+      (st.ends_in_s != null ? ` · block ends in ${Math.floor(st.ends_in_s / 60)}:${String(st.ends_in_s % 60).padStart(2, "0")}` : "") : "";
   renderBlocks(); updateButtons();
 }
 function renderBlocks() {
@@ -178,10 +183,14 @@ function renderBlocks() {
   $("blocks").innerHTML = p.blocks.map((b, i) => {
     const status = i < cur || (i === cur && ["block_done", "finished"].includes(st.state)) ? "✓ done"
       : i === cur ? { running: `running ${st.done}/${st.total}`, stopped: `stopped ${st.done}/${st.total}`, gait: "gait pattern…" }[st.state] || "next" : "";
-    const timing = b.timing_mode === "random" ? `${b.interval_min_steps}–${b.interval_max_steps} steps` : `steps ${b.schedule_steps.join(" ")}`;
+    const timing = (b.duration_s ? `${b.duration_s} s` : "") + (b.warmup_s ? `, warm-up ${b.warmup_s} s` : "") +
+      (b.pattern ? "" : b.timing_mode === "random" ? ` ${b.interval_min_steps}–${b.interval_max_steps} steps` : ` steps ${(b.schedule_steps || []).join(" ")}`);
+    const force = b.amplitude_mode === "newton" ? `${b.amplitude}` : b.amplitude_mode === "percent_bw"
+      ? `${(b.amplitude / 100 * mass * 9.81).toFixed(0)} <span class="u">(${b.amplitude} % BW)</span>` : `${(b.intensity_pct_bw / 100 * mass * 9.81).toFixed(0)}`;
     return `<tr${i === cur ? ' class="cur"' : ""}><td>${i + 1}</td><td>${esc(b.label)}</td><td>${b.speed_ms}</td>` +
-      `<td title="${b.intensity_pct_bw} % body weight">${(b.intensity_pct_bw / 100 * mass * 9.81).toFixed(0)} × ${b.n_perturbations}</td>` +
-      `<td>${b.directions_deg.join(" ")}</td><td>${b.gait_phase_pct} % ${b.gait_phase_of || "stance"} · ${b.trigger_side}</td><td class="small">${timing}</td><td class="small">${status}</td></tr>`;
+      `<td>${force} × ${b.n_perturbations}</td>` +
+      `<td>${b.pattern ? `pattern <b>${esc(b.pattern)}</b>` : (b.directions_deg || []).join(" ")}</td>` +
+      `<td>${b.gait_phase_pct} % ${b.gait_phase_of || "cycle"} · ${b.trigger_side}</td><td class="small">${timing}</td><td class="small">${status}</td></tr>`;
   }).join("");
 }
 function updateButtons() {
