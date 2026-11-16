@@ -107,3 +107,7 @@ Reason: user (2026-11-16), see server D50.
 ## U22 — 2026-11-16 — Delay report link, page errors to the log, recording safeguards (server D51)
 Decision: after Stop rec the test page and BumpemActivation link the "delay report" (opens as text); "Error log (today)" links on the test page and BumpemActivation; alerts.js sends the page's own JavaScript errors to `POST /errors` (max 20 per page load). BumpemActivation: Start starts a recording first if none runs; Stop rec needs a second click while a study is loaded and not finished.
 Reason: user (2026-11-16); their test ran all blocks unrecorded after Stop rec.
+
+## U23 — 2026-11-16 — Welcome page at /ui/; test page moves to BumpemTest.html
+Decision: `web/index.html` is a welcome page: "Good morning / afternoon / evening" by the PC's clock, "What would you like to do with Bump'em today?", icon tiles in three groups: Prepare a study (BumpemPattern, BumpemSetUp), Run (BumpemActivation; turns yellow with "Study X loaded: block n of N" while `GET /study` has one), Test and maintain (BumpemTest, calibrate, testing.html with the server's mode from `GET /info`); Teensy / Vicon pills from `/sync` (alerts.js); STOP + Esc and the treadmill note like every page; Error log link. The old test page is `web/BumpemTest.html` (unchanged inside). The Bump'em logo in every page's header links home. Icons are inline SVG (offline). No server change: `/` and `bumpem serve` still open `/ui/`.
+Reason: user (2026-11-16): a welcome page with buttons to every section.

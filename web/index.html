@@ -3,103 +3,69 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bump'em Test</title>
+<title>Bump'em</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/png" href="favicon.png">
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><img class="logo" src="logo.png" alt="">Bump'em <span>test</span></div>
-  <div class="conn">
-    <select id="port" aria-label="Board port"><option value="sim">simulator</option></select>
-    <button id="btn-connect">Connect</button>
-    <span id="conn-state" class="pill">not connected</span>
-    <span id="board-state" class="pill state">—</span>
-  </div>
+  <div class="brand"><img class="logo" src="logo.png" alt="">Bump'em</div>
+  <div class="conn" id="status"></div>
   <div class="actions">
-    <button id="btn-clear" class="warn" hidden title="Leave FAULT: back to ARMED (protocol CLEAR)">Clear fault</button>
-    <button id="btn-arm">Arm</button>
-    <button id="btn-record" class="primary" title="Records rope forces (full board rate), pulses sent and the Vicon plates until Stop rec; enabled once armed">Record</button>
-    <button id="btn-release" class="warn">Release…</button>
-    <button id="btn-stop" class="stop" title="Emergency stop: drivers off now (key: Esc)">STOP <kbd>Esc</kbd></button>
+    <button id="btn-stop" class="stop" title="Drivers off now (key: Esc)">STOP <kbd>Esc</kbd></button>
   </div>
 </header>
-<p class="stop-note">STOP and Release drop rope tension: stop the treadmill first, unless it is an emergency.</p>
-<p id="mode-warning" class="stop-note" hidden></p>
-<p id="defaults-warning" class="stop-note" hidden></p>
+<p class="stop-note">STOP drops rope tension: stop the treadmill first, unless it is an emergency.</p>
 
-<main class="grid">
-  <div class="col">
-    <section class="card" aria-labelledby="h-dir">
-      <h2 id="h-dir">Direction</h2>
-      <svg id="dial" viewBox="-40 0 420 340" role="img" aria-label="Pull direction dial, seen from above; front is up"></svg>
-      <div class="row">
-        <label>Angle <input id="angle" type="number" step="1" value="180"> °</label>
-        <span id="angle-note" class="muted"></span>
-      </div>
-      <p class="muted small">Seen from above, subject facing up. 0° front, +90° left, −90° right, 180° back. Grey: no mounted module can pull that way.</p>
-    </section>
+<main class="home">
+  <h1 id="greeting">Hello</h1>
+  <p class="lead">What would you like to do with Bump'em today?</p>
 
-    <section class="card" aria-labelledby="h-pert">
-      <h2 id="h-pert">Perturbation</h2>
-      <div class="fields">
-        <label>Amplitude <span class="u">N above baseline, <span id="amp-max">max ?</span></span><input id="amplitude_n" type="number" step="0.5" min="0" value="10"></label>
-        <label>Phase 1 (ramp up) <span class="u">ms</span><input id="phase1_ms" type="number" step="1" min="0" value="50"></label>
-        <label>Duration <span class="u">ms, start → end incl. ramps</span><input id="dur_ms" type="number" step="1" min="1" value="400"></label>
-        <label>Phase 2 (ramp down) <span class="u">ms</span><input id="phase2_ms" type="number" step="1" min="0" value="50"></label>
-        <label>Delay <span class="u">ms, board-side</span><input id="delay_ms" type="number" step="1" min="0" value="0"></label>
-      </div>
-      <svg id="profile" viewBox="0 0 360 90" role="img" aria-label="Force profile preview"></svg>
-      <div class="row">
-        <button id="btn-perturb" class="primary">Perturb now</button>
-      </div>
-      <p id="pert-result" class="muted small"></p>
-    </section>
+  <h2>Prepare a study</h2>
+  <div class="tiles">
+    <a class="tile" href="BumpemPattern.html">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12"/><path d="M16 4v5M16 23v5M4 16h5M23 16h5"/><path class="fill" d="M16 9l3 7-3 7-3-7z"/></svg>
+      <b>Create a pattern</b>
+      <span>Direction sequence and steps between perturbations, saved once and reused for every participant.</span>
+    </a>
+    <a class="tile" href="BumpemSetUp.html">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="4" width="22" height="6" rx="1.5"/><rect x="5" y="13" width="22" height="6" rx="1.5"/><rect x="5" y="22" width="22" height="6" rx="1.5"/><path d="M9 7h6M9 16h9M9 25h4"/></svg>
+      <b>Set up a study</b>
+      <span>Subject and blocks: import the CSV, check, confirm, then Start the study.</span>
+    </a>
   </div>
-  <div class="col">
-    <section class="card" aria-labelledby="h-live">
-      <h2 id="h-live">Rope force <span class="muted">(tower sensors)</span></h2>
-      <canvas id="plot" class="plot" aria-label="Measured (solid, median of 5 samples) and target (dashed) force per module, last 10 s"></canvas>
-      <div id="legend" class="legend"></div>
-      <div class="row">
-        <label>Recording label <input id="log-label" type="text" maxlength="40" placeholder="pull_A_50N" pattern="[A-Za-z0-9_-]*"></label>
-        <span class="muted small">Record (top right) once armed</span>
-      </div>
-      <p id="log-note" class="muted small"></p>
-    </section>
-    <section class="card" aria-labelledby="h-vicon">
-      <h2 id="h-vicon">Ground force <span class="muted">(GRAIL plates, Vicon)</span></h2>
-      <canvas id="vplot" class="plot" aria-label="Vertical force per treadmill plate, last 10 s"></canvas>
-      <div id="vlegend" class="legend"></div>
-      <div class="row">
-        <label>Vicon <input id="vicon-host" type="text" size="18" placeholder="192.168.1.60:801" spellcheck="false"></label>
-        <button id="btn-vicon">Connect</button>
-        <span id="vicon-state" class="pill">not connected</span>
-      </div>
-      <p id="vicon-note" class="muted small"></p>
-    </section>
+
+  <h2>Run</h2>
+  <div class="tiles">
+    <a class="tile" href="BumpemActivation.html" id="tile-run">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="18" cy="5" r="2.5"/><path d="M17 9l-3 8 5 4 1 8M14 17l-5 4M16 11l5 4 5-1M14 17l-4 9"/></svg>
+      <b>Run the study</b>
+      <span id="run-note">Arm, record the gait pattern, run the blocks, watch both forces.</span>
+    </a>
   </div>
-  <section class="card wide" aria-labelledby="h-board">
-    <h2 id="h-board">Board settings</h2>
-    <div class="fields">
-      <label>Baseline <span class="u">N</span><input id="p-baseline_n" type="number" step="0.5" min="0"></label>
-      <label>Max force <span class="u">N (firmware clamp)</span><input id="p-fmax_n" type="number" step="1" min="0"></label>
-      <label>Feedforward gain <span class="u">kff: 2 ≈ 1 N per N asked; 7.5 pulls ≈ 3.75× (D34)</span><input id="p-kff" type="number" step="0.1" min="0" max="20"></label>
-    </div>
-    <div class="chans" id="chans"></div>
-    <div class="row"><button id="btn-apply">Apply</button><span id="params-note" class="muted small"></span></div>
-    <div class="row">
-      <button id="btn-zero" title="Ropes slack, DISARMED: sets each enabled sensor's offset so it reads 0 N">Zero sensors</button>
-      <button id="btn-save" title="Stores every board parameter on this PC; the server writes them to the board at each connect">Save as default</button>
-      <a class="small" href="calibrate.html">Calibrate sensors with weights</a> · <a class="small" href="BumpemSetUp.html">BumpemSetUp</a> (study protocol) · <a class="small" href="/api/v1/errors/file" download>Error log (today)</a>
-    </div>
-    <p id="settings-note" class="muted small"></p>
-    <p class="muted small">Channels can only be switched while DISARMED or stopped (ESTOP). A Teensy replug resets the board to firmware values; saved defaults are written back at connect.</p>
-  </section>
+
+  <h2>Test and maintain</h2>
+  <div class="tiles">
+    <a class="tile" href="BumpemTest.html">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 22h6l3-12 4 16 3-10h10"/></svg>
+      <b>Test pulls</b>
+      <span>Single perturbations by angle, live rope and plate forces, recording, delay report.</span>
+    </a>
+    <a class="tile" href="calibrate.html">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="7" r="3"/><path d="M8 12h16l3 16H5z"/><path d="M13 21h6"/></svg>
+      <b>Calibrate sensors</b>
+      <span>Load cells with known weights, gives the CSV for apply_calibration.bat.</span>
+    </a>
+    <a class="tile" href="testing.html">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="5"/><path d="M16 3v5M16 24v5M3 16h5M24 16h5M6.8 6.8l3.5 3.5M21.7 21.7l3.5 3.5M6.8 25.2l3.5-3.5M21.7 10.3l3.5-3.5"/></svg>
+      <b>Motor test</b>
+      <span id="motor-note">One open-loop pull per motor. Needs the server in testing mode.</span>
+    </a>
+  </div>
+
+  <p class="small muted"><a href="/api/v1/errors/file" download>Error log (today)</a></p>
 </main>
-
 <script src="alerts.js"></script>
-<script src="plots.js"></script>
-<script src="app.js"></script>
+<script src="home.js"></script>
 </body>
 </html>

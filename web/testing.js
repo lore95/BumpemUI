@@ -90,7 +90,7 @@ async function init() {
     const info = await api("GET", "/info");
     if (info.mode !== "testing") {
       const w = $("mode-warning"); w.hidden = false;
-      w.textContent = `The server is in ${info.mode} mode: pulls are refused here. Restart it with  bumpem serve --testing  (or use the production page at /ui/).`;
+      w.textContent = `The server is in ${info.mode} mode: pulls are refused here. Restart it with  bumpem serve --testing  (or use the test page BumpemTest.html).`;
     }
     if (info.port) await setConnected(info);
   } catch (e) { setText("conn-state", "server not reachable", true); }
