@@ -5,6 +5,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const MODS = [["A", "left"], ["B", "front"], ["C", "right"], ["D", "back"]];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const get = (o, ...keys) => keys.reduce((a, k) => (a == null ? undefined : a[k]), o);   // no ?. : older lab browsers
 // Rules of thumb for the feedback (U24, U25), not limits: change them here when the lab knows better values.
 const RULE = { ratioLow: 0.8, ratioHigh: 1.2, slowerFactor: 1.5, slowerMs: 10, spreadMs: 30, commandMs: 20, commandMaxMs: 50, noiseN: 1.5,
   latencySpreadMs: 20, arrivalMs: 10, scatterPct: 2 };
@@ -39,7 +40,7 @@ function setState(st) {
   state = st;
   const el = $("board-state");
   el.textContent = st || "—"; el.className = `pill state ${st || ""}`;
-  $("btn-arm").disabled = running || !info?.port || st === "ARMED";
+  $("btn-arm").disabled = running || !get(info, "port") || st === "ARMED";
 }
 function openStream() {
   if (ws) return;
@@ -51,7 +52,7 @@ function openStream() {
 async function loadBoard() {
   try {
     info = await api("GET", "/info");
-    $("conn-state").textContent = info.port ? `${info.port} · fw ${info.board?.fw ?? "?"}` : "no Teensy: check its USB (the server retries every 5 s)";
+    $("conn-state").textContent = info.port ? `${info.port} · fw ${get(info, "board", "fw") ?? "?"}` : "no Teensy: check its USB (the server retries every 5 s)";
     $("conn-state").classList.toggle("ok", !!info.port);
     if (!info.port) { setState(null); return; }
     [params, state] = [await api("GET", "/params"), (await api("GET", "/status")).state];
@@ -177,7 +178,7 @@ function render(run) {
     return `<tr><td>${q.pulse_id}</td><td>${q.tower}</td><td>${q.force}</td><td>${q.round}</td><td>${fmt(r.command_ms, 1)}</td><td>${fmt(r.rise_ms)}</td><td>${fmt(r.lag_ms)}</td><td>${r.ratio == null ? "–" : r.ratio.toFixed(2)}</td><td>${esc(r.note || "")}</td></tr>`; }).join("");
   $("report-body").innerHTML = `
     <h2>Bump'em delay test</h2>
-    <p class="small">${esc(when)} · board ${esc(run.info.port)} · firmware ${esc(run.info.board?.fw ?? "?")} · server ${esc(run.info.server)}<br>
+    <p class="small">${esc(when)} · board ${esc(run.info.port)} · firmware ${esc(get(run.info, "board", "fw") ?? "?")} · server ${esc(run.info.server)}<br>
       Towers ${s.towers.join(" → ")} · forces ${s.forces.join(" / ")} N above baseline · ${s.rounds} rounds · pull ${s.dur} ms, ramps ${s.ramp} ms, gap ${s.gap} ms<br>
       Board: baseline ${p.baseline_n} N · max force ${p.fmax_n} N · kp ${p.kp_track} · kd ${p.kd_track} · kff ${p.kff} · recording ${esc(run.rep.file)}</p>
     <h3>Feedback</h3>
@@ -209,9 +210,9 @@ async function timing(run) {
     const t = fr.map((r) => +r.time_ms), d = t.slice(1).map((x, i) => x - t[i]), per = med(d);
     out.board = { rate: 1000 / per, period: per, missing: d.reduce((a, x) => a + Math.max(0, Math.round(x / per) - 1), 0), n: t.length };
   }
-  const bc = run.live.sync?.board?.clock;
-  if (bc) Object.assign(out.board ||= {}, { late: bc.late_ms, jitter: bc.jitter_ms, drift: bc.drift_ppm, ok: bc.ok });
-  if (!run.live.vicon?.connected) { out.vicon = null; }
+  const bc = get(run.live, "sync", "board", "clock");
+  if (bc) Object.assign(out.board = out.board || {}, { late: bc.late_ms, jitter: bc.jitter_ms, drift: bc.drift_ppm, ok: bc.ok });
+  if (!get(run.live, "vicon", "connected")) { out.vicon = null; }
   else {
     const vr = await csv("vicon");                           // plates: 1 row per subsample; host_s = arrival, pc_s = sample time (both PC clock)
     if (vr && vr.length > 10) {
@@ -228,8 +229,8 @@ async function timing(run) {
         lost: gaps.reduce((a, g) => a + Math.max(0, g - 1), 0), arrMed: (med(late) - l0) * 1000, arrP95: (pct(late, 0.95) - l0) * 1000,
         lat: med(lat), latP5: pct(lat, 0.05), latP95: pct(lat, 0.95) };
     }
-    const vc = run.live.sync?.vicon?.clock;
-    if (vc) Object.assign(out.vicon ||= {}, { jitter: vc.jitter_ms, drift: vc.drift_ppm, ok: vc.ok, lostClock: vc.lost_frames });
+    const vc = get(run.live, "sync", "vicon", "clock");
+    if (vc) Object.assign(out.vicon = out.vicon || {}, { jitter: vc.jitter_ms, drift: vc.drift_ppm, ok: vc.ok, lostClock: vc.lost_frames });
   }
   const all = run.rep.pulses, rise = vals(all, "rise_ms"), cmd = vals(all, "command_ms");
   const v = out.vicon || {};
@@ -237,7 +238,7 @@ async function timing(run) {
   const worst = [v.latP95 ?? 0, v.framePeriod ?? 0, v.arrP95 ?? 0, cmd.length ? Math.max(...cmd) : 0, rise.length ? Math.max(...rise) : 0];
   const best = [v.latP5 ?? 0, 0, 0, cmd.length ? Math.min(...cmd) : 0, rise.length ? Math.min(...rise) : 0];
   out.budget = { typical: typ.reduce((a, x) => a + x, 0), worst: worst.reduce((a, x) => a + x, 0), best: best.reduce((a, x) => a + x, 0), parts: typ, viconKnown: v.lat != null };
-  const g = run.live.study?.gait, measured = g ? [g.left?.stride_ms, g.right?.stride_ms].filter(Boolean) : [];
+  const g = get(run.live, "study", "gait"), measured = g ? [get(g, "left", "stride_ms"), get(g, "right", "stride_ms")].filter(Boolean) : [];
   out.strides = measured.length ? [["measured stride", med(measured) / 1000]] : [["walking", STRIDE_S.walking], ["running", STRIDE_S.running]];
   return out;
 }
@@ -254,7 +255,7 @@ function timingFeedback(T) {
     else if (v.latP95 - v.latP5 > RULE.latencySpreadMs) fb.push(["warn", `Vicon latency varies ${fmt(v.latP5)}–${fmt(v.latP95)} ms: the Nexus PC is busy (close other programs, lower the camera processing).`]);
     if (v.arrP95 > RULE.arrivalMs) fb.push(["warn", `Plate frames arrive up to ${fmt(v.arrP95)} ms late (95 %): network or the station PC is busy.`]);
   }
-  if (b.rate && v?.sampleRate) fb.push(["ok", `Plates ${fmt(v.sampleRate)} Hz vs board ${fmt(b.rate)} Hz: the board's force onset is known to ${fmt(b.period)} ms, the touch-down to ${fmt(1000 / v.sampleRate, 1)} ms.`]);
+  if (b.rate && v && v.sampleRate) fb.push(["ok", `Plates ${fmt(v.sampleRate)} Hz vs board ${fmt(b.rate)} Hz: the board's force onset is known to ${fmt(b.period)} ms, the touch-down to ${fmt(1000 / v.sampleRate, 1)} ms.`]);
   const B = T.budget, sc = (B.worst - B.best) / 2;
   for (const [name, s] of T.strides) {
     const p = (100 * sc) / (s * 1000);
@@ -276,8 +277,8 @@ function renderTiming(run) {
       ${row("Sample rate", v ? `${fmt(v.sampleRate)} Hz (${fmt(v.frameRate)} frames/s × ${v.subs})` : "–", b.rate ? `${fmt(b.rate)} Hz` : "–")}
       ${row("Lost", v ? `${v.lost} of ${v.frames} frames` : "–", b.n ? `${b.missing} of ${b.n} samples` : "–")}
       ${row("Latency (own estimate)", v ? (v.lat == null ? "–" : `${fmt(v.lat)} ms (5–95 %: ${fmt(v.latP5)}–${fmt(v.latP95)})`) : "–", "see command in the table above")}
-      ${row("Arrival delay (median / 95 %)", v?.arrMed != null ? `${fmt(v.arrMed, 1)} / ${fmt(v.arrP95, 1)} ms` : "–", b.late != null ? `95 %: ${fmt(b.late, 1)} ms` : "–")}
-      ${row("Clock vs PC", v?.drift != null ? `drift ${fmt(v.drift, 1)} ppm, jitter ${fmt(v.jitter, 1)} ms${v.ok ? " ✓" : " ✗"}` : "–", b.drift != null ? `drift ${fmt(b.drift, 1)} ppm, jitter ${fmt(b.jitter, 2)} ms${b.ok ? " ✓" : " ✗"}` : "–")}
+      ${row("Arrival delay (median / 95 %)", v && v.arrMed != null ? `${fmt(v.arrMed, 1)} / ${fmt(v.arrP95, 1)} ms` : "–", b.late != null ? `95 %: ${fmt(b.late, 1)} ms` : "–")}
+      ${row("Clock vs PC", v && v.drift != null ? `drift ${fmt(v.drift, 1)} ppm, jitter ${fmt(v.jitter, 1)} ms${v.ok ? " ✓" : " ✗"}` : "–", b.drift != null ? `drift ${fmt(b.drift, 1)} ppm, jitter ${fmt(b.jitter, 2)} ms${b.ok ? " ✓" : " ✗"}` : "–")}
     </tbody></table>
     <p class="small"><b>Timing budget, real touch-down → rope pulls:</b> typical ${fmt(B.typical)} ms = Vicon latency ${B.viconKnown ? fmt(B.parts[0]) : "?"} + plate arrival ${fmt(B.parts[1])} + command ${fmt(B.parts[2])} + rise ${fmt(B.parts[3])} ms; range ${fmt(B.best)}–${fmt(B.worst)} ms (worst adds one plate frame).</p>
     <p class="small muted">No person on the plates in this test: the touch-down side is Vicon's own numbers, the rope side is measured. Rules (U25): lost frames or samples; Vicon latency 5–95 % wider than ${RULE.latencySpreadMs} ms; plate arrival 95 % over ${RULE.arrivalMs} ms; scatter over ±${RULE.scatterPct} % of the gait cycle. Strides: ${T.strides.map(([n, s]) => `${n} ${fmt(s, 2)} s`).join(", ")}${T.strides.length > 1 ? " (1.8 / 2.8 steps/s, as BumpemSetUp)" : ""}.</p>`;
@@ -304,6 +305,6 @@ function init() {
   $("btn-print").onclick = () => window.print(); $("btn-save").onclick = saveHtml;
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); stop(); } });
   showPlan(); loadBoard(); openStream();
-  setInterval(() => { if (!running && !info?.port) loadBoard(); }, 3000);   // pick the board up when the server reconnects it
+  setInterval(() => { if (!running && !get(info, "port")) loadBoard(); }, 3000);   // pick the board up when the server reconnects it
 }
 init();
