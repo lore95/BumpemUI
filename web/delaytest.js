@@ -51,7 +51,7 @@ function openStream() {
 async function loadBoard() {
   try {
     info = await api("GET", "/info");
-    $("conn-state").textContent = info.port ? `${info.port} · fw ${info.board?.fw ?? "?"}` : "not connected: connect on the test page";
+    $("conn-state").textContent = info.port ? `${info.port} · fw ${info.board?.fw ?? "?"}` : "no Teensy: check its USB (the server retries every 5 s)";
     $("conn-state").classList.toggle("ok", !!info.port);
     if (!info.port) { setState(null); return; }
     [params, state] = [await api("GET", "/params"), (await api("GET", "/status")).state];
@@ -304,5 +304,6 @@ function init() {
   $("btn-print").onclick = () => window.print(); $("btn-save").onclick = saveHtml;
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); stop(); } });
   showPlan(); loadBoard(); openStream();
+  setInterval(() => { if (!running && !info?.port) loadBoard(); }, 3000);   // pick the board up when the server reconnects it
 }
 init();
