@@ -5,8 +5,10 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const MODS = [["A", "left"], ["B", "front"], ["C", "right"], ["D", "back"]];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-// Rules of thumb for the feedback (U24), not limits: change them here when the lab knows better values.
-const RULE = { ratioLow: 0.8, ratioHigh: 1.2, slowerFactor: 1.5, slowerMs: 10, spreadMs: 30, commandMs: 20, commandMaxMs: 50, noiseN: 1.5 };
+// Rules of thumb for the feedback (U24, U25), not limits: change them here when the lab knows better values.
+const RULE = { ratioLow: 0.8, ratioHigh: 1.2, slowerFactor: 1.5, slowerMs: 10, spreadMs: 30, commandMs: 20, commandMaxMs: 50, noiseN: 1.5,
+  latencySpreadMs: 20, arrivalMs: 10, scatterPct: 2 };
+const STRIDE_S = { walking: 2 / 1.8, running: 2 / 2.8 };   // 1.8 / 2.8 steps per s, as BumpemSetUp's duration check (D50)
 
 let info = null, params = null, state = null, ws = null, running = false, cancel = false, lastRun = null;
 
@@ -100,14 +102,19 @@ async function run() {
       await sleep(s.dur + s.gap);
     }
   } catch (e) { problems.push(e.message); }
+  const live = {};                                           // clocks and Vicon as they were during the run (U25)
+  for (const [k, path] of [["sync", "/sync"], ["vicon", "/vicon"], ["study", "/study"]]) live[k] = await api("GET", path).catch(() => null);
   try { await api("POST", "/log/stop"); } catch (e) { problems.push(`Stop rec: ${e.message}`); }
   running = false; $("btn-run").disabled = false; $("btn-cancel").disabled = true; setState(state);
   if (!sent.length) return say(problems.join(" ") || "No pull sent.", true);
   say("Analysing…");
   try {
     const rep = await api("GET", "/log/delay");
-    lastRun = { s, sent, problems, started, rep, info, params };
+    lastRun = { s, sent, problems, started, rep, info, params, live };
     render(lastRun);
+    say("Timing: reading the recorded files…");
+    lastRun.timing = await timing(lastRun).catch((e) => ({ error: e.message }));
+    renderTiming(lastRun);
     say(`Done: ${sent.length} pulls. Report below; the text version is saved next to the recording (${rep.file}).`);
   } catch (e) { say(`Delay report: ${e.message}`, true); }
 }
@@ -184,6 +191,97 @@ function render(run) {
     </details>`;
   $("report").hidden = false;
   $("report").scrollIntoView({ behavior: "smooth" });
+}
+
+// ---------------------------------------------------------------- timing: ground force (Vicon plates) vs the system (U25)
+const pct = (v, q) => { const a = v.filter((x) => x != null && !isNaN(x)).sort((x, y) => x - y); return a.length ? a[Math.min(a.length - 1, Math.floor(q * a.length))] : null; };
+async function csv(kind) {
+  const r = await fetch(`${API}/log/file?kind=${kind}`);
+  if (!r.ok) return null;
+  const lines = (await r.text()).trim().split(/\r?\n/), head = lines.shift().split(",");
+  return lines.map((l) => { const c = l.split(","), o = {}; head.forEach((h, i) => { o[h] = c[i]; }); return o; });
+}
+
+async function timing(run) {
+  const out = {};
+  const fr = await csv("force");                             // board: 1 row per telemetry sample, board clock time_ms
+  if (fr && fr.length > 10) {
+    const t = fr.map((r) => +r.time_ms), d = t.slice(1).map((x, i) => x - t[i]), per = med(d);
+    out.board = { rate: 1000 / per, period: per, missing: d.reduce((a, x) => a + Math.max(0, Math.round(x / per) - 1), 0), n: t.length };
+  }
+  const bc = run.live.sync?.board?.clock;
+  if (bc) Object.assign(out.board ||= {}, { late: bc.late_ms, jitter: bc.jitter_ms, drift: bc.drift_ppm, ok: bc.ok });
+  if (!run.live.vicon?.connected) { out.vicon = null; }
+  else {
+    const vr = await csv("vicon");                           // plates: 1 row per subsample; host_s = arrival, pc_s = sample time (both PC clock)
+    if (vr && vr.length > 10) {
+      const frames = [], late = [], lat = [];
+      let subs = 0, prev = null;
+      for (const r of vr) {
+        subs = Math.max(subs, +r.sub + 1);
+        if (r.frame !== prev) { frames.push(+r.frame); late.push(+r.host_s - +r.pc_s); prev = r.frame; }
+        if (r.latency_ms !== "" && r.latency_ms != null) lat.push(+r.latency_ms);
+      }
+      const fRate = run.live.vicon.rate_hz, l0 = Math.min(...late);
+      const gaps = frames.slice(1).map((f, i) => f - frames[i]);
+      out.vicon = { frameRate: fRate, subs, sampleRate: fRate * subs, framePeriod: 1000 / fRate, frames: frames.length,
+        lost: gaps.reduce((a, g) => a + Math.max(0, g - 1), 0), arrMed: (med(late) - l0) * 1000, arrP95: (pct(late, 0.95) - l0) * 1000,
+        lat: med(lat), latP5: pct(lat, 0.05), latP95: pct(lat, 0.95) };
+    }
+    const vc = run.live.sync?.vicon?.clock;
+    if (vc) Object.assign(out.vicon ||= {}, { jitter: vc.jitter_ms, drift: vc.drift_ppm, ok: vc.ok, lostClock: vc.lost_frames });
+  }
+  const all = run.rep.pulses, rise = vals(all, "rise_ms"), cmd = vals(all, "command_ms");
+  const v = out.vicon || {};
+  const typ = [v.lat ?? 0, v.arrMed ?? 0, med(cmd) ?? 0, med(rise) ?? 0];
+  const worst = [v.latP95 ?? 0, v.framePeriod ?? 0, v.arrP95 ?? 0, cmd.length ? Math.max(...cmd) : 0, rise.length ? Math.max(...rise) : 0];
+  const best = [v.latP5 ?? 0, 0, 0, cmd.length ? Math.min(...cmd) : 0, rise.length ? Math.min(...rise) : 0];
+  out.budget = { typical: typ.reduce((a, x) => a + x, 0), worst: worst.reduce((a, x) => a + x, 0), best: best.reduce((a, x) => a + x, 0), parts: typ, viconKnown: v.lat != null };
+  const g = run.live.study?.gait, measured = g ? [g.left?.stride_ms, g.right?.stride_ms].filter(Boolean) : [];
+  out.strides = measured.length ? [["measured stride", med(measured) / 1000]] : [["walking", STRIDE_S.walking], ["running", STRIDE_S.running]];
+  return out;
+}
+
+function timingFeedback(T) {
+  const fb = [], b = T.board || {}, v = T.vicon;
+  if (b.missing > 0) fb.push(["warn", `Board telemetry: ${b.missing} samples missing (USB too slow for the data: tx_drops). Force onsets can be off by one sample.`]);
+  if (b.ok === false) fb.push(["bad", "Board clock not in sync with the PC (see the clock line on BumpemActivation)."]);
+  if (v === null) fb.push(["warn", "Vicon was not connected: no ground-force timing. Connect Vicon (BumpemActivation or start_server.bat) and run the test again."]);
+  else {
+    if (v.lost > 0 || v.lostClock > 0) fb.push(["warn", `Force plates: ${v.lost || v.lostClock} frames lost. A touch-down in a lost frame is seen one frame late or not at all.`]);
+    if (v.ok === false) fb.push(["bad", "Vicon clock not in sync with the PC."]);
+    if (v.lat == null) fb.push(["warn", "Vicon sent no latency estimate (simulator or old SDK): its share of the budget is missing."]);
+    else if (v.latP95 - v.latP5 > RULE.latencySpreadMs) fb.push(["warn", `Vicon latency varies ${fmt(v.latP5)}–${fmt(v.latP95)} ms: the Nexus PC is busy (close other programs, lower the camera processing).`]);
+    if (v.arrP95 > RULE.arrivalMs) fb.push(["warn", `Plate frames arrive up to ${fmt(v.arrP95)} ms late (95 %): network or the station PC is busy.`]);
+  }
+  if (b.rate && v?.sampleRate) fb.push(["ok", `Plates ${fmt(v.sampleRate)} Hz vs board ${fmt(b.rate)} Hz: the board's force onset is known to ${fmt(b.period)} ms, the touch-down to ${fmt(1000 / v.sampleRate, 1)} ms.`]);
+  const B = T.budget, sc = (B.worst - B.best) / 2;
+  for (const [name, s] of T.strides) {
+    const p = (100 * sc) / (s * 1000);
+    fb.push([p > RULE.scatterPct ? "warn" : "ok", `${name} (stride ${fmt(s, 2)} s): a gait-triggered pull scatters about ±${fmt(sc)} ms = ±${fmt(p, 1)} % of the gait cycle around its phase.`]);
+  }
+  fb.push(["ok", `The mean (${fmt(B.typical)} ms) is what the System delay on BumpemActivation removes; only the scatter stays. A study block measures the real value (delay report → recommended System delay).`]);
+  return fb;
+}
+
+function renderTiming(run) {
+  const T = run.timing, el = document.createElement("div");
+  if (T.error) { el.innerHTML = `<h3>Timing: ground force vs system</h3><p class="small warn-text">${esc(T.error)}</p>`; $("report-body").append(el); return; }
+  const b = T.board || {}, v = T.vicon, B = T.budget;
+  const row = (k, a, c) => `<tr><td>${k}</td><td>${a}</td><td>${c}</td></tr>`;
+  el.innerHTML = `
+    <h3>Timing: ground force vs system</h3>
+    <ul class="dt-fb">${timingFeedback(T).map(([k, t]) => `<li class="${k}">${esc(t)}</li>`).join("")}</ul>
+    <table class="pulls dt-table"><thead><tr><th></th><th>Force plates (Vicon)</th><th>Board (rope force)</th></tr></thead><tbody>
+      ${row("Sample rate", v ? `${fmt(v.sampleRate)} Hz (${fmt(v.frameRate)} frames/s × ${v.subs})` : "–", b.rate ? `${fmt(b.rate)} Hz` : "–")}
+      ${row("Lost", v ? `${v.lost} of ${v.frames} frames` : "–", b.n ? `${b.missing} of ${b.n} samples` : "–")}
+      ${row("Latency (own estimate)", v ? (v.lat == null ? "–" : `${fmt(v.lat)} ms (5–95 %: ${fmt(v.latP5)}–${fmt(v.latP95)})`) : "–", "see command in the table above")}
+      ${row("Arrival delay (median / 95 %)", v?.arrMed != null ? `${fmt(v.arrMed, 1)} / ${fmt(v.arrP95, 1)} ms` : "–", b.late != null ? `95 %: ${fmt(b.late, 1)} ms` : "–")}
+      ${row("Clock vs PC", v?.drift != null ? `drift ${fmt(v.drift, 1)} ppm, jitter ${fmt(v.jitter, 1)} ms${v.ok ? " ✓" : " ✗"}` : "–", b.drift != null ? `drift ${fmt(b.drift, 1)} ppm, jitter ${fmt(b.jitter, 2)} ms${b.ok ? " ✓" : " ✗"}` : "–")}
+    </tbody></table>
+    <p class="small"><b>Timing budget, real touch-down → rope pulls:</b> typical ${fmt(B.typical)} ms = Vicon latency ${B.viconKnown ? fmt(B.parts[0]) : "?"} + plate arrival ${fmt(B.parts[1])} + command ${fmt(B.parts[2])} + rise ${fmt(B.parts[3])} ms; range ${fmt(B.best)}–${fmt(B.worst)} ms (worst adds one plate frame).</p>
+    <p class="small muted">No person on the plates in this test: the touch-down side is Vicon's own numbers, the rope side is measured. Rules (U25): lost frames or samples; Vicon latency 5–95 % wider than ${RULE.latencySpreadMs} ms; plate arrival 95 % over ${RULE.arrivalMs} ms; scatter over ±${RULE.scatterPct} % of the gait cycle. Strides: ${T.strides.map(([n, s]) => `${n} ${fmt(s, 2)} s`).join(", ")}${T.strides.length > 1 ? " (1.8 / 2.8 steps/s, as BumpemSetUp)" : ""}.</p>`;
+  $("report-body").append(el);
 }
 
 function saveHtml() {
