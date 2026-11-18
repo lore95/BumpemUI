@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bump'em Delay Test</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><a href="./" title="Home"><img class="logo" src="logo.png" alt="">Bump'em <span>delay test</span></a></div>
+  <div class="conn">
+    <span id="conn-state" class="pill">not connected</span>
+    <span id="board-state" class="pill state">—</span>
+  </div>
+  <div class="actions">
+    <button id="btn-arm">Arm</button>
+    <button id="btn-stop" class="stop" title="Drivers off now (key: Esc)">STOP <kbd>Esc</kbd></button>
+  </div>
+</header>
+<p class="stop-note">STOP drops rope tension: stop the treadmill first, unless it is an emergency.</p>
+
+<main class="grid">
+  <section class="card wide no-print" aria-labelledby="h-set">
+    <h2 id="h-set">Automatic delay test</h2>
+    <p class="muted small">Pulls the towers in turn (A → B → C → D), every round at each force, records everything, then makes the delay report with feedback. Connect on the test page first.</p>
+    <div class="dt-form">
+      <label>Towers <span id="towers"></span></label>
+      <label>Forces <span class="u">N above baseline</span><input id="forces" value="10, 20"></label>
+      <label>Rounds per force<input id="rounds" type="number" min="1" max="20" value="5"></label>
+      <label>Pull duration <span class="u">ms, ramps incl.</span><input id="dur" type="number" min="100" max="1000" step="50" value="400"></label>
+      <label>Ramp up / down <span class="u">ms</span><input id="ramp" type="number" min="0" max="200" step="10" value="50"></label>
+      <label>Gap between pulls <span class="u">ms</span><input id="gap" type="number" min="1500" max="10000" step="100" value="2000"></label>
+    </div>
+    <p id="params" class="small muted">Board parameters: —</p>
+    <label class="small warn-text"><input id="safe" type="checkbox"> Ropes tied to a fixed anchor and tensioned at baseline · nobody attached · treadmill off · hand on the 48 V switch.</label>
+    <p><button id="btn-run" class="primary">Run test</button> <button id="btn-cancel" disabled>Cancel after this pull</button></p>
+    <p id="plan" class="small muted"></p>
+    <p id="progress" class="small"></p>
+  </section>
+
+  <section id="report" class="card wide" hidden aria-labelledby="h-rep">
+    <div class="no-print"><button id="btn-print" class="primary">Save as PDF / print</button> <button id="btn-save">Download report (.html)</button></div>
+    <div id="report-body"></div>
+  </section>
+</main>
+
+<script src="alerts.js"></script>
+<script src="delaytest.js"></script>
+</body>
+</html>

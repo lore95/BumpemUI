@@ -3,6 +3,7 @@
 Targets API: `../BumpemServer/docs/API.md` 1.0-draft (server 0.6.0).
 
 ## Done
+- **Delay test page (2026-11-18, U24):** `web/BumpemDelay.html` + `delaytest.js` (tile on the welcome page): towers in turn A → B → C → D, rounds at each force (default 10 / 20 N × 5), `POST /pulse` with recording, then `GET /log/delay` → report (medians per tower × force, every pull, feedback by rules of thumb), Save as PDF / Download .html. Checked in Chrome on sim (16 pulls, no console errors). Not yet run on the real towers. Next: run it on the rig (B first checked: it read a flat 0.0 N on 2026-11-18).
 - **Welcome page (2026-11-16, U23):** `/ui/` = greeting + icon tiles to Pattern, SetUp, Activation, Test (`BumpemTest.html`, was index.html), calibration, motor test; study / connection status; logo = home link on every page. Checked in Chrome on sim (tiles, live study note, home link, no console errors).
 - **Delay report, error log, recording safeguards (2026-11-16, U22, server D51):** checked in Chrome on sim: Stop rec asks twice, Start restarts the recording, delay report after Stop rec (System delay 11 ms on sim).
 - **Final protocol + BumpemPattern (2026-11-16, U21, server D50):** checked in Chrome on sim: pattern generated / saved / listed; SetUp duration alert; pattern run on BumpemActivation (pulls at the pattern's steps, baseline from the protocol).
