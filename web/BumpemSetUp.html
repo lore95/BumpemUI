@@ -24,8 +24,10 @@
   <section class="card wide" aria-labelledby="h-file">
     <h2 id="h-file">Protocol file <span class="muted" id="schema-version"></span></h2>
     <div class="row">
-      <input id="file" type="file" accept=".csv,text/csv" hidden>
-      <button id="btn-import">Import CSV</button>
+      <input id="file" type="file" accept=".csv,text/csv,.json,application/json" hidden>
+      <button id="btn-import" title="A protocol CSV, or the protocol.json of a saved study">Import CSV / JSON</button>
+      <select id="saved" aria-label="Saved studies"><option value="">Saved studies…</option></select>
+      <button id="btn-saved" title="Start a new session from a saved study: same study settings and blocks, new participant">Import saved study</button>
       <button id="btn-export">Export CSV</button>
       <button id="btn-template">Download template</button>
       <button id="btn-new" class="warn">New</button>
@@ -33,7 +35,7 @@
       <span id="file-note" class="muted small"></span>
     </div>
     <ul id="import-report" class="small warn-text" hidden></ul>
-    <p class="muted small">Prepare a file offline from the template (Excel: one subject list, then one row per block), import it, check each section and Confirm it. Any edit needs a new Confirm. The draft stays in this browser.</p>
+    <p class="muted small">Prepare a file offline from the template (Excel: one global list, then one row per block), or start from a saved study (every finished study is saved as a zip in Logs; its participant ID, mass and height are left empty for the new participant). Import, check each section and Confirm it. Any edit needs a new Confirm. The draft stays in this browser.</p>
   </section>
 
   <section class="card wide" id="subject" aria-labelledby="h-subject"></section>

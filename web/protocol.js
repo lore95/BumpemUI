@@ -165,8 +165,52 @@ function download(name, text) {
   a.href = URL.createObjectURL(new Blob([text], { type: "text/csv" })); a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
+// a saved study (session zip's protocol.json, D53) → form values; the participant's own values are left empty
+const PARTICIPANT = ["subject_id", "mass_kg", "height_cm"];
+function fromSaved(pr) {
+  const back = (f, x) => {
+    if (x == null) return "";
+    if (f.map) { const k = Object.keys(f.map).find((t) => f.map[t] === x); if (k) return k; }
+    return Array.isArray(x) ? x.join(" ") : String(x);
+  };
+  const conv = (kind, o) => Object.fromEntries(SCHEMA[kind].fields.map((f) => [f.key, back(f, o[f.key])]).filter(([, x]) => x !== ""));
+  const subject = conv("subject", pr.subject || {});
+  for (const k of PARTICIPANT) delete subject[k];
+  return { subject, blocks: (pr.blocks || []).map((b) => conv("block", b)), warn: [] };
+}
+function useImported(r, source, what) {
+  const rep = $("import-report");
+  P = { subject: { values: r.subject, status: "imported" }, blocks: r.blocks.map((v) => ({ values: v, status: "imported" })), source };
+  $("file-note").textContent = `${source}: ${what} (previous draft replaced)`;
+  rep.innerHTML = r.warn.map((w) => `<li>${esc(w)}</li>`).join(""); rep.hidden = !r.warn.length;
+  render();
+}
+async function loadSaved() {   // session zips on this PC (GET /studies, D53)
+  try {
+    const list = await (await fetch(API + "/studies")).json();
+    $("saved").innerHTML = `<option value="">${list.length ? "Saved studies on this PC…" : "No saved studies yet"}</option>` +
+      list.map((x) => `<option value="${esc(x.name)}">${esc(x.study_name || "(no study name)")} · ${esc(x.subject_id)} · ${esc((x.loaded || "").replace("T", " ").slice(0, 16))} · ${x.blocks} block${x.blocks === 1 ? "" : "s"}</option>`).join("");
+  } catch (e) { $("saved").innerHTML = '<option value="">Saved studies: server not reachable</option>'; }
+}
+async function importSaved() {
+  const name = $("saved").value;
+  if (!name) return;
+  try {
+    const r = await fetch(`${API}/studies/${encodeURIComponent(name)}/protocol`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const s = fromSaved(await r.json());
+    useImported(s, name, `study settings and ${s.blocks.length} block${s.blocks.length === 1 ? "" : "s"}; fill in the participant (ID, mass, height)`);
+  } catch (e) { $("file-note").textContent = `${name}: ${e.message}`; }
+}
 async function importFile(file) {
   const rep = $("import-report");
+  if (/\.json$/i.test(file.name)) {   // protocol.json from a session zip, unzipped on another PC
+    try {
+      const s = fromSaved(JSON.parse(await file.text()));
+      useImported(s, file.name, `study settings and ${s.blocks.length} block${s.blocks.length === 1 ? "" : "s"}; fill in the participant (ID, mass, height)`);
+    } catch (e) { $("file-note").textContent = `${file.name}: not a saved study (${e.message})`; rep.hidden = true; }
+    return;
+  }
   try {
     const r = parseProtocol(await file.text());
     P = { subject: { values: r.subject, status: "imported" }, blocks: r.blocks.map((v) => ({ values: v, status: "imported" })), source: file.name };
@@ -245,6 +289,8 @@ async function init() {
   $("btn-stop").onclick = stop;
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); stop(); } });
   $("btn-import").onclick = () => $("file").click();
+  $("btn-saved").onclick = importSaved;
+  loadSaved();
   $("file").onchange = (e) => { if (e.target.files[0]) importFile(e.target.files[0]); e.target.value = ""; };
   $("btn-export").onclick = () => {
     download(`protocol_${(P.subject.values.subject_id || "draft").replace(/[^\w-]/g, "")}_${stamp()}.csv`, csvText(P));

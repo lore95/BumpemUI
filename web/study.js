@@ -102,8 +102,19 @@ function showLog(l) {
     });
     const d = document.createElement("a"); d.href = `${API}/log/delay?format=text`; d.target = "_blank"; d.textContent = "delay report";   // D51
     e.append(" · ", d);
+    if (S.study.state === "finished" && S.zipped !== l.file) { S.zipped = l.file; saveZip(); }   // once per recording (U26)
   }
   $("btn-rec").hidden = !S.recording;
+}
+async function saveZip() {   // server D53: <ID>_<study>_<date>_<time>.zip in Logs
+  const e = $("zip-note");
+  e.textContent = "Saving the session zip…"; e.style.color = "";
+  try {
+    const r = await api("POST", "/study/export");
+    e.textContent = `Saved ${r.name} (${r.recordings} recording${r.recordings === 1 ? "" : "s"}, ${r.files.length} files) in the Logs folder on this PC. `;
+    const a = document.createElement("a"); a.href = `${API}/study/export`; a.download = r.name; a.textContent = "Download";
+    e.append(a);
+  } catch (err) { e.textContent = "Session zip not saved: " + err.message; e.style.color = "var(--stop)"; }
 }
 async function loadLog() { try { const l = await api("GET", "/log"); if (l.recording || S.recording) showLog(l); } catch (e) { /* older server */ } }
 
@@ -181,7 +192,7 @@ function showStudy(st) {
       (gOk ? "" : " (block " + (i + 1) + " runs at " + speed + " m/s)") : "Needed before each new speed. Also sets each plate's contact threshold from its noise.");
   const needGait = speed != null && !gOk && ["loaded", "ready", "stopped", "block_done"].includes(st.state);
   const msg = { loaded: "", ready: "Ready: Start runs block 1.", running: "", stopped: "Block stopped", block_done: `Block ${st.block} done.`,
-    finished: "All blocks done. Release (treadmill stopped first), then download the recording.", gait: "" }[st.state] || "";
+    finished: "All blocks done. Release (treadmill stopped first): the recording stops and the session zip is saved.", gait: "" }[st.state] || "";
   const todo = needGait ? (S.state !== "ARMED" ? `Next: Arm (step 2), then set the treadmill to ${speed} m/s and Record gait pattern (step 3).`
       : `Next: set the treadmill to ${speed} m/s, then Record gait pattern (step 3) before block ${i + 1} can start.`)
     : st.state === "block_done" ? `Next: Start block ${st.block + 1}.` : "";
@@ -225,6 +236,8 @@ function updateButtons() {
   s.title = !armed ? "Arm first" : !gaitOk && st !== "none" ? `Record the gait pattern at ${S.study.next_speed_ms} m/s first`
     : !inSync ? "Clocks not in sync (line above Start)" : "";
   $("btn-pause").disabled = !["running", "gait"].includes(st);
+  $("btn-zip").disabled = st === "none" || ["running", "gait"].includes(st) || S.recording;
+  $("btn-zip").title = S.recording ? "Stop rec first, so the last file is complete" : "";
   $("left-plate").disabled = ["running", "gait"].includes(st);
 }
 async function study(path, body) { try { showStudy(await api("POST", "/study/" + path, body)); } catch (e) { note("study-note", e.message, true); } }
@@ -299,6 +312,7 @@ async function init() {
   $("latency").onchange = () => localSet("latencyMs", $("latency").value);
   $("btn-start").onclick = async () => { if (await ensureRecording()) study("start", { latency_ms: Math.max(0, parseFloat($("latency").value) || 0) }); };
   $("btn-pause").onclick = () => study("stop");
+  $("btn-zip").onclick = saveZip;
   $("left-plate").onchange = () => { if (S.protocol && S.vicon && S.vicon.connected) loadStudy(); };   // new mapping: new gait pattern needed
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); stop(); } });
   document.addEventListener("bumpem-sync", (e) => showSync(e.detail));

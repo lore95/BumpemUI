@@ -43,6 +43,9 @@
         </li>
         <li><div class="row"><button id="btn-start" class="primary">Start the study</button><button id="btn-pause" class="warn">Stop perturbations</button>
           <label title="Plates → server → board → rope delay, subtracted from each pulse delay (to be measured; 0 until then)">System delay <input id="latency" type="number" min="0" max="1000" step="1" value="0"> ms</label></div></li>
+        <li>End: Release (treadmill stopped first) stops the recording; the session zip is then saved by itself.
+          <div class="row"><button id="btn-zip" title="All files of this session in one zip in Logs: recordings, delay reports, protocol, gait patterns, parameters">Save session zip</button></div>
+          <p id="zip-note" class="small muted"></p></li>
       </ol>
       <p id="sync-note" class="small muted">Clocks: waiting for data…</p>
       <p id="study-note" class="small"></p>

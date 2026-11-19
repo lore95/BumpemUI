@@ -26,9 +26,12 @@ function phaseName(x, md) {   // % of the gait cycle (touch-down → touch-down 
 const SCHEMA = {
   version: "final-1",
   subject: {
-    title: "Subject",
+    title: "Global (study + participant)",
     fields: [
-      { key: "subject_id", label: "Subject code", type: "text", required: true, example: "S014", hint: "Code only, never the name" },
+      { key: "study_name", label: "Study name", type: "text", required: true, example: "KneeStudy",
+        hint: "Same for every participant of the study; names the session zip (letters, digits, spaces, - _)" },
+      { key: "subject_id", label: "Participant ID", type: "text", required: true, example: "S014",
+        hint: "The ID in the master file: letters, digits, - _. Never the name" },
       { key: "mass_kg", label: "Body mass", type: "number", unit: "kg", min: 20, max: 200, required: true, example: "72.5",
         note: (v) => num(v.mass_kg) > 0 ? `${(num(v.mass_kg) * G).toFixed(0)} N body weight` : "" },
       { key: "height_cm", label: "Height", type: "number", unit: "cm", min: 100, max: 230, required: true, example: "178" },
@@ -36,6 +39,10 @@ const SCHEMA = {
         hint: "Sets the cadence for the duration check, the gait-phase names and the gait-pattern check" },
       { key: "baseline_n", label: "Baseline rope tension", type: "number", unit: "N", min: 0, max: 20, required: true, example: "4",
         hint: "Hold force between pulls; set on the board at Arm" },
+    ],
+    checks: (v) => [   // the server checks the same (D53): both end up in the session zip's name
+      ...(/^[A-Za-z0-9_-]{0,40}$/.test(String(v.subject_id ?? "").trim()) ? [] : [["subject_id", "Only letters, digits, - and _ (max 40): an ID, not a name"]]),
+      ...(/^[A-Za-z0-9 _-]{0,40}$/.test(String(v.study_name ?? "").trim()) ? [] : [["study_name", "Only letters, digits, spaces, - and _ (max 40)"]]),
     ],
   },
   block: {
