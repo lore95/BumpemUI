@@ -5,6 +5,7 @@
 // note (values, ctx) → text shown under the field. checks (values, ctx) → [[key, message, alert?], ...]: rules across
 // fields; alert = also shown in red in the block's header line.
 // Values are the strings as typed or imported; ctx = {subject: subject values, maxN: board max pulse force or null,
+// reliableN: largest pull the towers reach without slipping (server /info, D56) or null,
 // patterns: {name: pattern with items} saved on the server, patternsLoaded}.
 // summary: keys shown in a block's header line. templateBlocks: example blocks of the template (overrides of `example`).
 "use strict";
@@ -70,8 +71,10 @@ const SCHEMA = {
         note: (v, ctx) => {
           const n = pullN(v, ctx), m = num(ctx.subject.mass_kg);
           if (isNaN(n)) return v.amplitude_mode === "absolute N" ? "N" : "% body weight (N needs the body mass)";
-          return v.amplitude_mode === "absolute N" ? `N${m > 0 ? ` = ${(n / (m * G) * 100).toFixed(1)} % body weight` : ""}`
-            : `% body weight = ${n.toFixed(1)} N`;
+          const warn = ctx.reliableN !== null && n > ctx.reliableN
+            ? ` · ⚠ above ${ctx.reliableN} N: the towers may not reach this force (shafts slip, docs/tower-limits.pdf)` : "";
+          return (v.amplitude_mode === "absolute N" ? `N${m > 0 ? ` = ${(n / (m * G) * 100).toFixed(1)} % body weight` : ""}`
+            : `% body weight = ${n.toFixed(1)} N`) + warn;
         } },
       { key: "dur_ms", label: "Perturbation duration", type: "number", unit: "ms, ramps included", min: 100, max: 1000, required: true, example: "400" },
     ],

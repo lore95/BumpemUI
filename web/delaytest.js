@@ -33,7 +33,9 @@ function plan(s) {   // round by round: every force, every tower in turn
 }
 function showPlan() {
   const s = settings(), n = plan(s).length;
-  $("plan").textContent = n ? `${n} pulls (${s.towers.join(" → ")} × ${s.forces.join(" / ")} N × ${s.rounds} rounds), about ${Math.ceil(n * (s.gap + s.dur) / 60000)} min.` : "Nothing to run: pick a tower and a force.";
+  const rel = get(info, "reliable_n"), over = rel != null && s.forces.some((f) => f > rel);   // D56
+  $("plan").textContent = (n ? `${n} pulls (${s.towers.join(" → ")} × ${s.forces.join(" / ")} N × ${s.rounds} rounds), about ${Math.ceil(n * (s.gap + s.dur) / 60000)} min.` : "Nothing to run: pick a tower and a force.")
+    + (n && over ? ` ⚠ Above ${rel} N the towers may not reach the force (shafts slip, docs/tower-limits.pdf).` : "");
 }
 
 function setState(st) {
@@ -52,6 +54,7 @@ function openStream() {
 async function loadBoard() {
   try {
     info = await api("GET", "/info");
+    showPlan();
     $("conn-state").textContent = info.port ? `${info.port} · fw ${get(info, "board", "fw") ?? "?"}` : "no Teensy: check its USB (the server retries every 5 s)";
     $("conn-state").classList.toggle("ok", !!info.port);
     if (!info.port) { setState(null); return; }

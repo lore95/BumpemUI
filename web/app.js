@@ -127,12 +127,13 @@ async function perturb() {
   for (const k of ["amplitude_n", "phase1_ms", "dur_ms", "phase2_ms", "delay_ms"]) body[k] = parseFloat($(k).value);
   const ampMax = ampLimit();
   if (ampMax !== null && body.amplitude_n > ampMax) {
-    note("pert-result", `Amplitude ${body.amplitude_n} N is above the limit ${ampMax} N (Max force ${S.params.fmax_n} − baseline ${S.params.baseline_n}). Raise Max force under Board settings.`, true);
+    note("pert-result", `Amplitude ${body.amplitude_n} N is above the limit ${ampMax} N (Max force ${S.params.fmax_n} − baseline ${S.params.baseline_n}). Tower limits: docs/tower-limits.pdf.`, true);
     return;
   }
   try {
     const r = await api("POST", "/perturbation", body);
-    note("pert-result", `pulse ${r.pulse_id}: ` + Object.entries(r.amps).map(([m, v]) => `${m} +${v} N`).join(", "));
+    note("pert-result", `pulse ${r.pulse_id}: ` + Object.entries(r.amps).map(([m, v]) => `${m} +${v} N`).join(", ")
+      + (r.warning ? ` · ⚠ ${r.warning}` : ""), !!r.warning);   // D56: above the reliable force
   } catch (e) { note("pert-result", e.message, true); }
 }
 

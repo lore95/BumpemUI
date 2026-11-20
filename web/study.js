@@ -160,7 +160,11 @@ async function viconToggle() {
 async function loadStudy() {   // the protocol from BumpemSetUp.html → server
   S.loading = true;
   try {
-    showStudy(await api("POST", "/study", { ...S.protocol, plates: plateMap() }));
+    const st = await api("POST", "/study", { ...S.protocol, plates: plateMap() });
+    showStudy(st);
+    const w = st.warnings || [];   // D56: blocks above the force the towers reach without slipping
+    $("force-warn").hidden = !w.length;
+    note("force-warn", w.length ? "⚠ " + w.join(" · ") : "", true);
     localSet("leftPlate", $("left-plate").value);
     localSet("bumpemStudy", JSON.stringify({ protocol: S.protocol, fresh: false }));   // a page reload keeps the server's study
   }

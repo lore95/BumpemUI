@@ -9,6 +9,7 @@ const STATUS = { new: ["not filled in", "muted"], imported: ["⚠ imported: chec
   edited: ["● edited: Confirm", "warn-text"], confirmed: ["✓ confirmed", "ok-text"] };
 let P = empty();          // {subject: {values, status}, blocks: [{values, status, closed}], source}
 let fmax = null, boardBase = 0;   // board max force and baseline, when one is connected
+let reliableN = null;             // largest pull the towers reach without slipping (server, D56)
 let PAT = {}, patLoaded = false;   // saved patterns on the server, by name (D50)
 
 function empty() { return { subject: { values: {}, status: "new" }, blocks: [], source: "" }; }
@@ -17,7 +18,7 @@ function load() { try { const p = JSON.parse(localStorage.getItem(STORE)); if (p
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const ctx = () => {   // pull limit = max force − the protocol's baseline (set at Arm), else the board's
   const b = num(P.subject.values.baseline_n);
-  return { subject: P.subject.values, maxN: fmax === null ? null : fmax - (isNaN(b) ? boardBase : b), patterns: PAT, patternsLoaded: patLoaded };
+  return { subject: P.subject.values, maxN: fmax === null ? null : fmax - (isNaN(b) ? boardBase : b), reliableN, patterns: PAT, patternsLoaded: patLoaded };
 };
 const sections = () => [["subject", "s", P.subject], ...P.blocks.map((b, i) => ["block", i, b])];
 
@@ -307,6 +308,7 @@ async function init() {
   window.addEventListener("focus", loadPatterns);   // back from BumpemPattern: new patterns in the list
   try {
     const i = await (await fetch(API + "/info")).json();
+    reliableN = i.reliable_n ?? null; update();
     $("conn-state").textContent = i.port ? `board ${i.port}` : "no board (STOP works once connected on the test page)";
     $("conn-state").classList.toggle("ok", !!i.port);
     if (i.port) { const p = await (await fetch(API + "/params")).json(); fmax = p.fmax_n; boardBase = p.baseline_n; update(); }
