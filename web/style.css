@@ -122,8 +122,10 @@ button.confirm:disabled { background: var(--panel-2); border-color: var(--line);
 
 /* Delay test page (U24) */
 .dt-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 12px 0; }
-.dt-form > label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
-.dt-form > label:first-child { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 14px; }
+.dt-form > label { display: grid; grid-template-columns: auto 1fr; grid-template-rows: 1fr auto; column-gap: 6px; row-gap: 4px; font-size: 13px; }
+.dt-form > label > .u { align-self: end; padding-bottom: 1px; }   /* unit on the label's line, not its own */
+.dt-form > label > input, .dt-form > label > select { grid-column: 1 / -1; height: 33px; box-sizing: border-box; }   /* every box the same size, at the bottom */
+.dt-form > label:first-child { grid-column: 1 / -1; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 14px; }
 .dt-tower { display: inline-flex; align-items: center; gap: 4px; }
 .dt-fb { padding-left: 18px; }
 .dt-fb li { margin: 4px 0; }
