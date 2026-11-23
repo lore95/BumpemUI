@@ -137,3 +137,24 @@ button.confirm:disabled { background: var(--panel-2); border-color: var(--line);
   body, .card { background: #fff !important; color: #000 !important; border: 0; }
   details { display: block; } details > * { display: revert; }
 }
+
+/* gait check (U29): contact panels, phase flash, clock to read in a video */
+.gc-clock { font-family: var(--mono); font-size: 15px; }
+.gc-clock b { font-size: 56px; letter-spacing: 1px; font-variant-numeric: tabular-nums; color: var(--fg); }
+.gc-feet { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.gc-foot { border: 2px solid var(--line); border-radius: 10px; padding: 18px; min-height: 120px; display: flex; flex-direction: column; justify-content: space-between; background: var(--panel-2); }
+.gc-foot b { font-size: 40px; }
+.gc-foot span { font-family: var(--mono); font-size: 14px; color: var(--muted); }
+.gc-foot.left b { color: var(--plate-0); }
+.gc-foot.right b { color: var(--plate-1); }
+.gc-foot.left.on { background: var(--plate-0); border-color: var(--plate-0); }
+.gc-foot.right.on { background: var(--plate-1); border-color: var(--plate-1); }
+.gc-foot.on b, .gc-foot.on span { color: #000; }
+.gc-phase { border: 2px dashed var(--line); border-radius: 10px; padding: 14px; text-align: center; font-size: 26px; font-weight: 700; color: var(--muted); }
+.gc-phase.on { background: var(--fg); color: #000; border-style: solid; border-color: var(--fg); }
+.gc-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13px; }
+.gc-table th, .gc-table td { text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--line); }
+.gc-table tr.left td:nth-child(3) { color: var(--plate-0); }
+.gc-table tr.right td:nth-child(3) { color: var(--plate-1); }
+.gc-table tr.ev-phase td { font-weight: 700; }
+@media (max-width: 600px) { .gc-clock b { font-size: 36px; } .gc-foot b { font-size: 28px; } .gc-table { font-size: 11px; } }

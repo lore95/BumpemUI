@@ -135,3 +135,7 @@ Reason: user (2026-11-20): alert above 50 N that the system may not reach the fo
 ## U28 — 2026-11-23 — Running gait pattern: one threshold line for the summed belts (server D57)
 Decision: when `gait.detector` is `sum`, BumpemActivation leaves the per-side thresholds out and adds "Running: steps on both belts summed, threshold td / fo N (25 / 10 % body weight)".
 Reason: running counts steps on both belts together (user, 2026-11-23); per-plate noise is not measured then.
+
+## U29 — 2026-11-23 — Gait check page (server D58)
+Decision: `web/BumpemGaitCheck.html` + `gaitcheck.js`, tile under "Test and maintain". Form filled from the loaded study (mode, mass, the next block's trigger side and phase) or by hand; Start / Stop (`/gaitcheck`), optional recording (`/log/start` label `gaitcheck`, stopped with the check). Live: server clock in large digits (browser time − the smallest browser − server gap over the stream's `host_s` / `sent_pc`), LEFT / RIGHT panels lit from TD to FO in the plate colours, a white flash at PHASE, events table (newest 40) with "on screen after" ms, CSV of all events. STOP + Esc as every page.
+Reason: user (2026-11-23): check contact times, phase and left / right against a high-frame-rate video of the screen and the participant. The clock, not the panels, is the time reference: the panels light up after network, detection and screen refresh.

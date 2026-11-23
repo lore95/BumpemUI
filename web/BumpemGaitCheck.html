@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bump'em Gait Check</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><a href="./" title="Home"><img class="logo" src="logo.png" alt="">Bump'em <span>gait check</span></a></div>
+  <div class="conn"><span id="check-state" class="pill">not running</span></div>
+  <div class="actions">
+    <button id="btn-stop" class="stop" title="Drivers off now (key: Esc)">STOP <kbd>Esc</kbd></button>
+  </div>
+</header>
+<p class="stop-note">STOP drops rope tension: stop the treadmill first, unless it is an emergency.</p>
+
+<main class="grid">
+  <section class="card wide" aria-labelledby="h-set">
+    <h2 id="h-set">Gait check</h2>
+    <p class="muted small">Shows every touch-down, foot-off and phase moment the server detects from the plates (the same detection as the study), with no board and no pulls. Film the participant and this screen together at high frame rate (120–240 fps): the frame where a foot lands shows the clock; compare it with that touch-down's time in the list.</p>
+    <div class="dt-form">
+      <label>From the loaded study <span id="from-study" class="muted">no study loaded: fill in below</span></label>
+      <label>Mode<select id="mode"><option value="walking">walking</option><option value="running">running</option></select></label>
+      <label>Body mass <span class="u">kg</span><input id="mass" type="number" min="1" max="300" step="0.5" value="75"></label>
+      <label>Phase after a touch-down of<select id="side"><option value="left">left</option><option value="right">right</option><option value="any">either foot</option></select></label>
+      <label>Gait phase <span class="u">%</span><input id="pct" type="number" min="0" max="99" step="1" value="20"></label>
+      <label>% of<select id="of"><option value="cycle">gait cycle (stride)</option><option value="stance">contact (stance)</option></select></label>
+    </div>
+    <label class="small"><input id="rec" type="checkbox"> Also record (force, events and plate CSVs; needs the Teensy connected)</label>
+    <p><button id="btn-start" class="primary">Start check</button> <button id="btn-end" disabled>Stop check</button> <button id="btn-csv" disabled>Download events (.csv)</button></p>
+    <p id="msg" class="small"></p>
+  </section>
+
+  <section class="card wide gc-live" aria-label="Live detection">
+    <div class="gc-clock"><span class="muted">server clock</span> <b id="clock">–</b> <span class="muted">s</span></div>
+    <div class="gc-feet">
+      <div id="foot-left" class="gc-foot left"><b>LEFT</b><span id="info-left">–</span></div>
+      <div id="foot-right" class="gc-foot right"><b>RIGHT</b><span id="info-right">–</span></div>
+    </div>
+    <div id="phase" class="gc-phase">phase</div>
+    <p id="summary" class="small muted">Start the check: walking needs 10 s to set the plates' thresholds, the phase needs 3 strides of the trigger foot.</p>
+  </section>
+
+  <section class="card wide" aria-labelledby="h-ev">
+    <h2 id="h-ev">Events <span class="muted small">newest first; time = the plate sample on the server clock</span></h2>
+    <table class="gc-table"><thead><tr><th>time s</th><th>event</th><th>side</th><th>step</th><th>contact ms</th><th>stride ms</th><th>phase ms</th><th>on screen after ms</th></tr></thead>
+      <tbody id="events"></tbody></table>
+    <p class="small muted">"On screen after": how long after the event this page received it (network + detection). The panels and the flash light up that much later, plus up to one screen refresh (≈ 17 ms at 60 Hz): for timing, read the clock in the video, not the panels.</p>
+  </section>
+</main>
+
+<script src="alerts.js"></script>
+<script src="gaitcheck.js"></script>
+</body>
+</html>
