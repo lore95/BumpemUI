@@ -131,3 +131,7 @@ Alternatives: keep the previous participant's mass / height on import (risk of w
 ## U27 — 2026-11-20 — Warning above the reliable force (server D56)
 Decision: the pages read `reliable_n` from `/info` (SetUp, Delay) or show the server's `warning` / `warnings` (Test, Activation); no constant in the UI. A warning never blocks: the board's Max force does.
 Reason: user (2026-11-20): alert above 50 N that the system may not reach the force; limit 75 N.
+
+## U28 — 2026-11-23 — Running gait pattern: one threshold line for the summed belts (server D57)
+Decision: when `gait.detector` is `sum`, BumpemActivation leaves the per-side thresholds out and adds "Running: steps on both belts summed, threshold td / fo N (25 / 10 % body weight)".
+Reason: running counts steps on both belts together (user, 2026-11-23); per-plate noise is not measured then.

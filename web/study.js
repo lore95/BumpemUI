@@ -189,10 +189,12 @@ function showStudy(st) {
     : `Protocol loaded: ${st.blocks} blocks, left belt = ${st.plates.left}.`, st.state === "none");
   const speed = st.state === "none" ? null : st.next_speed_ms, g = st.gait, gOk = !!st.gait_ok;
   $("gait-speed").textContent = speed ?? "–";
-  const side = (k) => `${k} stride ${g[k].stride_ms} ms (sd ${g[k].sd_ms}, n ${g[k].n}), contact ${g[k].stance_ms} ms (sd ${g[k].stance_sd_ms}), ` +
-    `threshold ${g[k].td_n} / ${g[k].fo_n} N (noise sd ${g[k].noise_sd_n ?? "?"} N)`;
+  const sum = g && g.detector === "sum";       // running: steps on both belts summed, side from the weight shift (D57)
+  const side = (k) => `${k} stride ${g[k].stride_ms} ms (sd ${g[k].sd_ms}, n ${g[k].n}), contact ${g[k].stance_ms} ms (sd ${g[k].stance_sd_ms})` +
+    (sum ? "" : `, threshold ${g[k].td_n} / ${g[k].fo_n} N (noise sd ${g[k].noise_sd_n ?? "?"} N)`);
   note("gait-note", st.state === "gait" ? `Recording the plates… ${g.until_s} s left` : g && g.left
     ? `Gait pattern at ${g.speed_ms} m/s, plates ${g.rate_hz} Hz. ${side("left")}. ${side("right")}.` +
+      (sum ? ` Running: steps on both belts summed, threshold ${g.left.td_n} / ${g.left.fo_n} N (25 / 10 % body weight).` : "") +
       (gOk ? "" : " (block " + (i + 1) + " runs at " + speed + " m/s)") : "Needed before each new speed. Also sets each plate's contact threshold from its noise.");
   const needGait = speed != null && !gOk && ["loaded", "ready", "stopped", "block_done"].includes(st.state);
   const msg = { loaded: "", ready: "Ready: Start runs block 1.", running: "", stopped: "Block stopped", block_done: `Block ${st.block} done.`,
